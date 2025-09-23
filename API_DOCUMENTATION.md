@@ -1,944 +1,166 @@
-# Millis SaaS API Documentation
+# Millis SaaS Admin API - Step 3 Hardening & Ship
 
-## Base URL
-```
-http://localhost:4000/api/v1
-```
+## Overview
+This document outlines the hardened admin API implementation with security, validation, audit logging, and testing.
 
-## Authentication
-All protected endpoints require a Bearer token in the Authorization header:
-```
-Authorization: Bearer <your-jwt-token>
-```
+## Features Implemented
 
-## Rate Limiting
-- **General endpoints**: 100 requests per 15 minutes per IP
-- **Admin endpoints**: 60 requests per minute per IP
-- **Whitelisted IPs**: Bypass rate limiting (configurable via `RATE_LIMIT_WHITELIST`)
+### 1. Route Wiring & Authentication
+- Admin routes wired in `src/index.js`
+- Admin endpoints protected with `requireAuth` and `requireRole('admin')`
+- JWT-based authentication with access and refresh tokens
 
----
+### 2. Environment & Client Configuration
+- Environment variables: `MILLIS_BASE_URL`, `MILLIS_API_KEY`, `JWT_SECRET`
+- Millis client enhanced with error handling and timeouts
+- Centralized configuration in `src/config.js`
 
-## Public Endpoints
+### 3. Input Validation (express-validator)
+- **List Phones**: `page` (>=1), `pageSize` (1-100), `search` (<=100 chars)
+- **Import Phones**: `phones` (non-empty array), each phone (1-20 chars)
+- **Set Agent**: `phone` (1-20 chars), `agentId` (1-50 chars)
+- **Assign User Agent**: `agentId` (1-50 chars, required string)
+- **Unassign User Agent**: `agentId` path parameter (1-50 chars)
+- **Update Tags**: `phone` (1-20 chars), `tags` (array), each tag (1-30 chars)
+- **Approve Campaign**: `id` (1-50 chars), `approve` (boolean), `reason` (<=500 chars)
+- **Call Logs**: pagination, `from`/`to` ISO dates, `status` (<=20 chars)
+- **Sessions**: pagination, `phone` (<=20 chars), `agentId` (<=50 chars)
 
-### Health Check
-**GET** `/health`
-
-Check if the API is running.
-
-**Response:**
+### 4. Consistent Response Shapes
+All list endpoints return:
 ```json
 {
-  "status": "ok"
-}
-```
-
----
-
-## Authentication Endpoints
-
-### User Registration
-**POST** `/auth/signup`
-
-Register a new user account.
-
-**Request Body:**
-```json
-{
-  "email": "user@example.com",
-  "password": "password123",
-  "name": "John Doe"
-}
-```
-
-**Response (201):**
-```json
-{
-  "user": {
-    "id": "64f8a1b2c3d4e5f6a7b8c9d0",
-    "email": "user@example.com",
-    "name": "John Doe",
-    "role": "user"
-  },
-  "tokens": {
-    "access": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-    "refresh": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-  }
-}
-```
-
-### User Login
-**POST** `/auth/login`
-
-Authenticate user and get access tokens.
-
-**Request Body:**
-```json
-{
-  "email": "user@example.com",
-  "password": "password123"
-}
-```
-
-**Response (200):**
-```json
-{
-  "user": {
-    "id": "64f8a1b2c3d4e5f6a7b8c9d0",
-    "email": "user@example.com",
-    "name": "John Doe",
-    "role": "user"
-  },
-  "tokens": {
-    "access": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-    "refresh": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-  }
-}
-```
-
-### Refresh Token
-**POST** `/auth/refresh`
-
-Get a new access token using refresh token.
-
-**Request Body:**
-```json
-{
-  "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-}
-```
-
-**Response (200):**
-```json
-{
-  "access": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-}
-```
-
----
-
-## User Endpoints
-
-### Get Current User
-**GET** `/me/whoami`
-
-Get current authenticated user information.
-
-**Headers:**
-```
-Authorization: Bearer <access-token>
-```
-
-**Response (200):**
-```json
-{
-  "user": {
-    "id": "64f8a1b2c3d4e5f6a7b8c9d0",
-    "email": "user@example.com",
-    "name": "John Doe",
-    "role": "user"
-  }
-}
-```
-
-### User Dashboard (Placeholder)
-**GET** `/user/placeholder`
-
-Placeholder endpoint for user-specific functionality.
-
-**Headers:**
-```
-Authorization: Bearer <access-token>
-```
-
-**Response (200):**
-```json
-{
-  "message": "User dashboard APIs will live here."
-}
-```
-
----
-
-## Admin Endpoints
-
-> **Note:** All admin endpoints require `role: "admin"` in the JWT token.
-
-### Admin Dashboard (Placeholder)
-**GET** `/admin/placeholder`
-
-Placeholder endpoint for admin dashboard.
-
-**Headers:**
-```
-Authorization: Bearer <admin-access-token>
-```
-
-**Response (200):**
-```json
-{
-  "message": "Admin dashboard APIs will live here."
-}
-```
-
----
-
-## Phone Management
-
-### List Phones
-**GET** `/admin/phones`
-
-Get paginated list of phone numbers with optional search.
-
-**Headers:**
-```
-Authorization: Bearer <admin-access-token>
-```
-
-**Query Parameters:**
-- `page` (optional): Page number (default: 1, min: 1)
-- `pageSize` (optional): Items per page (default: 50, min: 1, max: 100)
-- `search` (optional): Search term (max: 100 characters)
-
-**Example:**
-```
-GET /admin/phones?page=1&pageSize=25&search=+91
-```
-
-**Response (200):**
-```json
-{
-  "items": [
-    {
-      "id": "phone1",
-      "number": "+14155550100",
-      "tags": ["vip", "premium"],
-      "agentId": "agent_123",
-      "meta": {
-        "createdAt": "2025-01-01T00:00:00Z",
-        "updatedAt": "2025-01-01T00:00:00Z"
-      }
-    },
-    {
-      "id": "phone2",
-      "number": "+14155550101",
-      "tags": [],
-      "agentId": null,
-      "meta": {
-        "createdAt": "2025-01-01T00:00:00Z",
-        "updatedAt": "2025-01-01T00:00:00Z"
-      }
-    }
-  ],
-  "page": 1,
-  "pageSize": 25,
-  "total": 2
-}
-```
-
-### Import Phones
-**POST** `/admin/phones/import`
-
-Import phone numbers in bulk.
-
-**Headers:**
-```
-Authorization: Bearer <admin-access-token>
-Content-Type: application/json
-```
-
-**Request Body:**
-```json
-{
-  "phones": [
-    "+14155550100",
-    "+14155550101",
-    "+14155550102"
-  ]
-}
-```
-
-**Response (202):**
-```json
-{
-  "message": "Import queued",
-  "result": {
-    "jobId": "import_job_123",
-    "status": "pending"
-  }
-}
-```
-
-### Set Phone Agent
-**POST** `/admin/phones/{phone}/set_agent`
-
-Assign an agent to a specific phone number.
-
-**Headers:**
-```
-Authorization: Bearer <admin-access-token>
-Content-Type: application/json
-```
-
-**Path Parameters:**
-- `phone`: Phone number (1-20 characters)
-
-**Request Body:**
-```json
-{
-  "agentId": "agent_123"
-}
-```
-
-**Response (200):**
-```json
-{
-  "phone": "+14155550100",
-  "agentId": "agent_123",
-  "out": {
-    "success": true,
-    "agentId": "agent_123"
-  }
-}
-```
-
-### Update Phone Tags
-**PATCH** `/admin/phones/{phone}/tags`
-
-Update tags for a specific phone number.
-
-**Headers:**
-```
-Authorization: Bearer <admin-access-token>
-Content-Type: application/json
-```
-
-**Path Parameters:**
-- `phone`: Phone number (1-20 characters)
-
-**Request Body:**
-```json
-{
-  "tags": ["vip", "beta", "premium"]
-}
-```
-
-**Response (200):**
-```json
-{
-  "phone": "+14155550100",
-  "tags": ["vip", "beta", "premium"],
-  "out": {
-    "success": true,
-    "tags": ["vip", "beta", "premium"]
-  }
-}
-```
-
----
-
-## Campaign Management
-
-### Approve/Reject Campaign
-**POST** `/admin/campaigns/{id}/approve`
-
-Approve or reject a campaign.
-
-**Headers:**
-```
-Authorization: Bearer <admin-access-token>
-Content-Type: application/json
-```
-
-**Path Parameters:**
-- `id`: Campaign ID (1-50 characters)
-
-**Request Body:**
-```json
-{
-  "approve": true,
-  "reason": "Meets compliance requirements"
-}
-```
-
-**Response (200):**
-```json
-{
-  "status": "approved",
-  "record": {
-    "campaignId": "campaign_123",
-    "approvedBy": "64f8a1b2c3d4e5f6a7b8c9d0",
-    "status": "approved",
-    "reason": "Meets compliance requirements",
-    "millisResponse": {
-      "success": true,
-      "status": "approved"
-    },
-    "createdAt": "2025-01-01T00:00:00Z",
-    "updatedAt": "2025-01-01T00:00:00Z"
-  }
-}
-```
-
----
-
-## Call & Session Management
-
-### List Call Logs
-**GET** `/admin/call_logs`
-
-Get paginated list of call logs with optional filtering.
-
-**Headers:**
-```
-Authorization: Bearer <admin-access-token>
-```
-
-**Query Parameters:**
-- `page` (optional): Page number (default: 1, min: 1)
-- `pageSize` (optional): Items per page (default: 50, min: 1, max: 100)
-- `from` (optional): Start date (ISO 8601 format)
-- `to` (optional): End date (ISO 8601 format)
-- `status` (optional): Call status (max: 20 characters)
-
-**Example:**
-```
-GET /admin/call_logs?from=2025-09-01T00:00:00Z&to=2025-09-23T23:59:59Z&page=1&pageSize=50
-```
-
-**Response (200):**
-```json
-{
-  "items": [
-    {
-      "id": "call1",
-      "from": "+14155550100",
-      "to": "+14155550101",
-      "startedAt": "2025-09-01T10:00:00Z",
-      "endedAt": "2025-09-01T10:05:30Z",
-      "durationSec": 330,
-      "status": "completed",
-      "meta": {
-        "agentId": "agent_123",
-        "campaignId": "campaign_456"
-      }
-    }
-  ],
+  "items": [...],
   "page": 1,
   "pageSize": 50,
-  "total": 1
+  "total": 100
 }
 ```
 
-### List Sessions
-**GET** `/admin/sessions`
+### 5. Audit Trail
+- `AdminAudit` model records admin actions with context
+- Logged actions: `set_agent`, `update_tags`, `approve_campaign`, `reject_campaign`
+- Stored data: actor, action, target, diff, reason, Millis response, IP, user agent
+- Indexes optimized for lookups by actor, action, target, and time
 
-Get paginated list of sessions with optional filtering.
+### 6. Rate Limiting & Security Hardening
+- Admin routes: 60 requests per minute per IP
+- General routes: 100 requests per 15 minutes per IP
+- IP whitelisting configurable through `RATE_LIMIT_WHITELIST`
+- Helmet, CORS, payload limits, proxy support
 
-**Headers:**
+### 7. Error Handling
+- Validation: 400 with details
+- Authentication: 401 for invalid or expired tokens
+- Authorization: 403 for insufficient permissions
+- Millis API failures: 502 for upstream errors
+- Rate limiting: 429 with descriptive payload
+
+### 8. Testing (Jest + Supertest)
+- Authentication and authorization scenarios
+- Input validation coverage
+- Happy-path flows with mocked Millis client
+- Error propagation for upstream failures
+
+## API Endpoints
 ```
-Authorization: Bearer <admin-access-token>
+GET    /api/v1/admin/phones                    # List phones with pagination/search
+POST   /api/v1/admin/phones/import             # Import phone numbers
+POST   /api/v1/admin/phones/:phone/set_agent   # Assign agent to phone
+PATCH  /api/v1/admin/phones/:phone/tags        # Update phone tags
+POST   /api/v1/admin/campaigns/:id/approve     # Approve/reject campaign
+GET    /api/v1/admin/call_logs                 # List call logs with filtering
+GET    /api/v1/admin/sessions                  # List sessions with filtering
+GET    /api/v1/admin/users                     # List users with pagination/search/role filter
+GET    /api/v1/admin/users/:id                 # Retrieve a single user
+POST   /api/v1/admin/users                     # Create a user (admin or regular)
+PATCH  /api/v1/admin/users/:id                # Update user profile, role, or password
+POST   /api/v1/admin/users/:id/agents         # Assign an agent to a user (idempotent)
+DELETE /api/v1/admin/users/:id/agents/:agentId # Unassign an agent from a user
+GET    /api/v1/admin/agents                    # List agents with assignment status
+DELETE /api/v1/admin/users/:id               # Remove a user (self-delete blocked)
 ```
-
-**Query Parameters:**
-- `page` (optional): Page number (default: 1, min: 1)
-- `pageSize` (optional): Items per page (default: 50, min: 1, max: 100)
-- `phone` (optional): Phone number filter (max: 20 characters)
-- `agentId` (optional): Agent ID filter (max: 50 characters)
-
-**Example:**
-```
-GET /admin/sessions?agentId=agent_123&page=1&pageSize=20
-```
-
-**Response (200):**
-```json
-{
-  "items": [
-    {
-      "id": "session1",
-      "userPhone": "+14155550100",
-      "agentId": "agent_123",
-      "startedAt": "2025-09-01T10:00:00Z",
-      "endedAt": "2025-09-01T10:30:00Z",
-      "meta": {
-        "campaignId": "campaign_456",
-        "duration": 1800
-      }
-    }
-  ],
-  "page": 1,
-  "pageSize": 20,
-  "total": 1
-}
-```
-
----
-
-## User Management
-
-### List Users
-**GET** `/admin/users`
-
-Get paginated list of users with optional search and role filtering.
-
-**Headers:**
-```
-Authorization: Bearer <admin-access-token>
-```
-
-**Query Parameters:**
-- `page` (optional): Page number (default: 1, min: 1)
-- `pageSize` (optional): Items per page (default: 50, min: 1, max: 100)
-- `search` (optional): Search term for name or email (max: 100 characters)
-- `role` (optional): Filter by role (enum: 'user', 'admin')
-
-**Example:**
-```
-GET /admin/users?page=1&pageSize=25&search=john&role=admin
-```
-
-**Response (200):**
-```json
-{
-  "items": [
-    {
-      "id": "64f8a1b2c3d4e5f6a7b8c9d0",
-      "name": "John Doe",
-      "email": "john@example.com",
-      "role": "admin",
-      "createdAt": "2025-01-01T00:00:00Z",
-      "updatedAt": "2025-01-01T00:00:00Z"
-    }
-  ],
-  "page": 1,
-  "pageSize": 25,
-  "total": 1
-}
-```
-
-### Get Single User
-**GET** `/admin/users/{id}`
-
-Retrieve a single user by ID.
-
-**Headers:**
-```
-Authorization: Bearer <admin-access-token>
-```
-
-**Path Parameters:**
-- `id`: User ID (ObjectId)
-
-**Response (200):**
-```json
-{
-  "id": "64f8a1b2c3d4e5f6a7b8c9d0",
-  "name": "John Doe",
-  "email": "john@example.com",
-  "role": "admin",
-  "createdAt": "2025-01-01T00:00:00Z",
-  "updatedAt": "2025-01-01T00:00:00Z"
-}
-```
-
-### Create User
-**POST** `/admin/users`
-
-Create a new user (admin or regular).
-
-**Headers:**
-```
-Authorization: Bearer <admin-access-token>
-Content-Type: application/json
-```
-
-**Request Body:**
-```json
-{
-  "name": "Jane Smith",
-  "email": "jane@example.com",
-  "password": "securepassword123",
-  "role": "user"
-}
-```
-
-**Response (201):**
-```json
-{
-  "id": "64f8a1b2c3d4e5f6a7b8c9d1",
-  "name": "Jane Smith",
-  "email": "jane@example.com",
-  "role": "user",
-  "createdAt": "2025-01-01T00:00:00Z",
-  "updatedAt": "2025-01-01T00:00:00Z"
-}
-```
-
-### Update User
-**PATCH** `/admin/users/{id}`
-
-Update user profile, role, or password.
-
-**Headers:**
-```
-Authorization: Bearer <admin-access-token>
-Content-Type: application/json
-```
-
-**Path Parameters:**
-- `id`: User ID (ObjectId)
-
-**Request Body:**
-```json
-{
-  "name": "Jane Smith Updated",
-  "email": "jane.updated@example.com",
-  "password": "newpassword123",
-  "role": "admin"
-}
-```
-
-**Response (200):**
-```json
-{
-  "id": "64f8a1b2c3d4e5f6a7b8c9d1",
-  "name": "Jane Smith Updated",
-  "email": "jane.updated@example.com",
-  "role": "admin",
-  "createdAt": "2025-01-01T00:00:00Z",
-  "updatedAt": "2025-01-01T12:00:00Z"
-}
-```
-
-### Delete User
-**DELETE** `/admin/users/{id}`
-
-Remove a user (self-delete blocked).
-
-**Headers:**
-```
-Authorization: Bearer <admin-access-token>
-```
-
-**Path Parameters:**
-- `id`: User ID (ObjectId)
-
-**Response (200):**
-```json
-{
-  "message": "User deleted successfully"
-}
-```
-
-**Error Response (400):**
-```json
-{
-  "error": "Cannot delete your own account"
-}
-```
-
----
-
-## Error Responses
-
-### Validation Error (400)
-```json
-{
-  "errors": [
-    {
-      "msg": "Page must be a positive integer",
-      "param": "page",
-      "location": "query"
-    }
-  ]
-}
-```
-
-### Unauthorized (401)
-```json
-{
-  "error": "Invalid token"
-}
-```
-
-### Forbidden (403)
-```json
-{
-  "error": "Forbidden"
-}
-```
-
-### Not Found (404)
-```json
-{
-  "error": "Not found"
-}
-```
-
-### Rate Limited (429)
-```json
-{
-  "error": "Too many requests, please try again later."
-}
-```
-
-### External Service Error (502)
-```json
-{
-  "error": "External service error",
-  "code": "EXTERNAL_SERVICE_ERROR"
-}
-```
-
-### Internal Server Error (500)
-```json
-{
-  "error": "Internal Server Error",
-  "code": "INTERNAL_ERROR"
-}
-```
-
----
-
-## Data Models
-
-### User
-```json
-{
-  "id": "string (ObjectId)",
-  "email": "string (unique, lowercase)",
-  "name": "string",
-  "role": "string (enum: 'user', 'admin')",
-  "createdAt": "string (ISO 8601)",
-  "updatedAt": "string (ISO 8601)"
-}
-```
-
-### Phone
-```json
-{
-  "id": "string (Millis ID)",
-  "number": "string",
-  "tags": "string[]",
-  "agentId": "string | null",
-  "meta": "object",
-  "createdAt": "string (ISO 8601)",
-  "updatedAt": "string (ISO 8601)"
-}
-```
-
-### Call Log
-```json
-{
-  "id": "string (call ID)",
-  "from": "string",
-  "to": "string",
-  "startedAt": "string (ISO 8601)",
-  "endedAt": "string (ISO 8601)",
-  "durationSec": "number",
-  "status": "string",
-  "meta": "object",
-  "createdAt": "string (ISO 8601)",
-  "updatedAt": "string (ISO 8601)"
-}
-```
-
-### Session
-```json
-{
-  "id": "string (session ID)",
-  "userPhone": "string",
-  "agentId": "string",
-  "startedAt": "string (ISO 8601)",
-  "endedAt": "string (ISO 8601)",
-  "meta": "object",
-  "createdAt": "string (ISO 8601)",
-  "updatedAt": "string (ISO 8601)"
-}
-```
-
-### Campaign Approval
-```json
-{
-  "campaignId": "string",
-  "approvedBy": "string (ObjectId)",
-  "status": "string (enum: 'approved', 'rejected')",
-  "reason": "string",
-  "millisResponse": "object",
-  "createdAt": "string (ISO 8601)",
-  "updatedAt": "string (ISO 8601)"
-}
-```
-
----
-
-## Frontend Integration Examples
-
-### Authentication Flow
-```javascript
-// 1. Login
-const loginResponse = await fetch('/api/v1/auth/login', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({
-    email: 'user@example.com',
-    password: 'password123'
-  })
-});
-
-const { user, tokens } = await loginResponse.json();
-
-// 2. Store tokens
-localStorage.setItem('accessToken', tokens.access);
-localStorage.setItem('refreshToken', tokens.refresh);
-
-// 3. Use token for API calls
-const apiCall = async (endpoint, options = {}) => {
-  const token = localStorage.getItem('accessToken');
-  
-  return fetch(`/api/v1${endpoint}`, {
-    ...options,
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json',
-      ...options.headers
-    }
-  });
-};
-
-// 4. Handle token refresh
-const refreshToken = async () => {
-  const refreshToken = localStorage.getItem('refreshToken');
-  
-  const response = await fetch('/api/v1/auth/refresh', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ refreshToken })
-  });
-  
-  const { access } = await response.json();
-  localStorage.setItem('accessToken', access);
-};
-```
-
-### Phone Management
-```javascript
-// List phones with pagination
-const getPhones = async (page = 1, pageSize = 50, search = '') => {
-  const params = new URLSearchParams({ page, pageSize });
-  if (search) params.append('search', search);
-  
-  const response = await apiCall(`/admin/phones?${params}`);
-  return response.json();
-};
-
-// Import phones
-const importPhones = async (phones) => {
-  const response = await apiCall('/admin/phones/import', {
-    method: 'POST',
-    body: JSON.stringify({ phones })
-  });
-  return response.json();
-};
-
-// Set phone agent
-const setPhoneAgent = async (phone, agentId) => {
-  const response = await apiCall(`/admin/phones/${phone}/set_agent`, {
-    method: 'POST',
-    body: JSON.stringify({ agentId })
-  });
-  return response.json();
-};
-
-// Update phone tags
-const updatePhoneTags = async (phone, tags) => {
-  const response = await apiCall(`/admin/phones/${phone}/tags`, {
-    method: 'PATCH',
-    body: JSON.stringify({ tags })
-  });
-  return response.json();
-};
-```
-
-### Campaign Management
-```javascript
-// Approve/reject campaign
-const approveCampaign = async (campaignId, approve, reason = '') => {
-  const response = await apiCall(`/admin/campaigns/${campaignId}/approve`, {
-    method: 'POST',
-    body: JSON.stringify({ approve, reason })
-  });
-  return response.json();
-};
-```
-
-### Call & Session Management
-```javascript
-// Get call logs with date filtering
-const getCallLogs = async (filters = {}) => {
-  const params = new URLSearchParams();
-  Object.entries(filters).forEach(([key, value]) => {
-    if (value) params.append(key, value);
-  });
-  
-  const response = await apiCall(`/admin/call_logs?${params}`);
-  return response.json();
-};
-
-// Get sessions with filtering
-const getSessions = async (filters = {}) => {
-  const params = new URLSearchParams();
-  Object.entries(filters).forEach(([key, value]) => {
-    if (value) params.append(key, value);
-  });
-  
-  const response = await apiCall(`/admin/sessions?${params}`);
-  return response.json();
-};
-```
-
----
 
 ## Environment Variables
-
-The API uses the following environment variables:
-
-```bash
-# Server Configuration
+```
+# Server
 NODE_ENV=development
 PORT=4000
 MONGO_URL=mongodb://localhost:27017/millis_saas
 CORS_ORIGINS=*
 
-# JWT Configuration
+# JWT
 JWT_SECRET=your-super-secret-jwt-key-here
 ACCESS_TOKEN_TTL=30m
 REFRESH_TOKEN_TTL=7d
 
-# Millis AI API Configuration
+# Millis API
 MILLIS_BASE_URL=https://api-eu-west.millis.ai
 MILLIS_API_KEY=your-millis-api-key-here
 
-# Rate Limiting Configuration
+# Rate limiting
 RATE_LIMIT_WHITELIST=103.232.246.21,192.168.1.1,10.0.0.1
 ```
 
----
+## Testing
+- Tests expect a MongoDB instance reachable at `MONGO_URL`; start `mongod` locally or point to a test cluster.
+- In CI, ensure MongoDB is available before running `npm test` (example: GitHub Actions service).
+- Jest setup lives in `tests/setup.js`, which seeds environment variables and clears collections between cases.
+
+### GitHub Actions Example
+```
+services:
+  mongo:
+    image: mongo:7
+    ports: ["27017:27017"]
+    options: >-
+      --health-cmd "mongosh --eval 'db.adminCommand(\"ping\")'"
+      --health-interval 10s
+      --health-timeout 5s
+      --health-retries 5
+```
+
+## Security Features
+1. JWT authentication with short-lived access tokens
+2. Role-based authorization for admin surfaces
+3. Rate limiting with IP whitelisting
+4. Input validation across parameters and bodies
+5. Security headers via Helmet and strict payload limits
+6. Audit logging for all admin-sensitive operations
+7. Centralized error handling without leaking internals
+
+## Database Models
+```
+AdminAudit
+  actor: ObjectId
+  action: String
+  target: String
+  targetType: String
+  diff: Mixed
+  reason: String
+  millisResponse: Mixed
+  ipAddress: String
+  userAgent: String
+  createdAt / updatedAt: Date
+```
 
 ## Postman Collection
+Postman collection (`postman/Millis SaaS Admin APIs.postman_collection.json`) includes all endpoints, authentication flows, and shared environment variables.
 
-A complete Postman collection is available at:
-- **Collection**: `postman/Millis SaaS — Admin APIs.postman_collection.json`
-- **Environment**: `postman/Millis SaaS — Local.postman_environment.json`
+## Production Readiness
+- Comprehensive validation and security posture
+- Audit trail for compliance
+- Robust error handling
+- Test coverage and documentation
+- Rate limiting, logging, and configuration hygiene
 
-The collection includes:
-- All API endpoints with proper authentication
-- Test scripts for validation
-- Environment variables for easy testing
-- Examples for all request/response formats
+## Next Steps
+1. Deploy to production
+2. Add monitoring and alerting
+3. Configure backups
+4. Publish OpenAPI/Swagger docs
+5. Integrate performance and log aggregation tooling
 
----
 
-## Support
 
-For technical support or questions about the API, please contact the backend development team.
+

@@ -168,6 +168,24 @@ class ApiService {
       method: 'DELETE',
     });
   }
+
+  // Agent management
+  async getAgents() {
+    return this.request('/admin/agents');
+  }
+
+  async assignAgentToUser(userId, agentId) {
+    return this.request(`/admin/users/${userId}/agents`, {
+      method: 'POST',
+      body: JSON.stringify({ agentId }),
+    });
+  }
+
+  async unassignAgentFromUser(userId, agentId) {
+    return this.request(`/admin/users/${userId}/agents/${agentId}`, {
+      method: 'DELETE',
+    });
+  }
 }
 
 export const api = new ApiService();
