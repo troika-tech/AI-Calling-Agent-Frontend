@@ -10,7 +10,7 @@ import UserManagement from './UserManagement';
 import AgentAssignment from './AgentAssignment';
 import { useTheme } from '../contexts/ThemeContext';
 
-const Dashboard = () => {
+const AdminDashboard = () => {
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { isDark } = useTheme();
@@ -58,4 +58,4 @@ const Dashboard = () => {
   );
 };
 
-export default Dashboard;
+export default AdminDashboard;

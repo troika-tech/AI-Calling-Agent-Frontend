@@ -1,42 +1,53 @@
 const API_BASE_URL = 'http://localhost:5000/api/v1';
+const DASHBOARD_BASE_URL = 'http://localhost:5000/api';
 
 class ApiService {
   constructor() {
     this.baseURL = API_BASE_URL;
+    this.dashboardBaseURL = DASHBOARD_BASE_URL;
+    this.isRefreshing = false;
   }
 
   async request(endpoint, options = {}) {
-    const url = `${this.baseURL}${endpoint}`;
-    const token = localStorage.getItem('accessToken');
+    const { baseURL, ...fetchOptions } = options;
+    const url = `${baseURL || this.baseURL}${endpoint}`;
 
     const config = {
       headers: {
         'Content-Type': 'application/json',
-        ...(token && { Authorization: `Bearer ${token}` }),
-        ...options.headers,
+        ...fetchOptions.headers,
       },
-      ...options,
+      credentials: 'include', // Include HTTP-only cookies
+      ...fetchOptions,
     };
 
     try {
       const response = await fetch(url, config);
-      
-      if (response.status === 401) {
+
+      if (response.status === 401 && !this.isRefreshing) {
         // Token expired, try to refresh
+        this.isRefreshing = true;
         const refreshed = await this.refreshToken();
+        this.isRefreshing = false;
+
         if (refreshed) {
-          // Retry the original request with new token
-          config.headers.Authorization = `Bearer ${localStorage.getItem('accessToken')}`;
+          // Retry the original request
           const retryResponse = await fetch(url, config);
           return this.handleResponse(retryResponse);
         } else {
+          // Refresh failed, redirect to login
+          console.log('Authentication failed, redirecting to login');
+          window.location.href = '/';
           throw new Error('Authentication failed');
         }
       }
 
       return this.handleResponse(response);
     } catch (error) {
-      console.error('API request failed:', error);
+      // Only log errors that are not authentication-related
+      if (!error.message.includes('Authentication failed')) {
+        console.error('API request failed:', error);
+      }
       throw error;
     }
   }
@@ -46,28 +57,35 @@ class ApiService {
       const errorData = await response.json().catch(() => ({}));
       throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
     }
+    
+    // Handle 204 No Content responses
+    if (response.status === 204) {
+      return null;
+    }
+    
+    // Check if response has content
+    const contentType = response.headers.get('content-type');
+    if (!contentType || !contentType.includes('application/json')) {
+      return null;
+    }
+    
     return response.json();
   }
 
   async refreshToken() {
     try {
-      const refreshToken = localStorage.getItem('refreshToken');
-      if (!refreshToken) return false;
-
       const response = await fetch(`${this.baseURL}/auth/refresh`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ refreshToken }),
+        credentials: 'include', // Include HTTP-only cookies
       });
 
       if (response.ok) {
-        const { access } = await response.json();
-        localStorage.setItem('accessToken', access);
         return true;
       }
       return false;
     } catch (error) {
-      console.error('Token refresh failed:', error);
+      // Don't log refresh failures - they're expected when not logged in
       return false;
     }
   }
@@ -82,6 +100,10 @@ class ApiService {
 
   async getCurrentUser() {
     return this.request('/me/whoami');
+  }
+
+  async getUserProfile() {
+    return this.request('/me');
   }
 
   // Phone management
@@ -120,7 +142,7 @@ class ApiService {
     });
   }
 
-  // Call logs and sessions
+  // Call logs
   async getCallLogs(filters = {}) {
     const params = new URLSearchParams();
     Object.entries(filters).forEach(([key, value]) => {
@@ -129,13 +151,6 @@ class ApiService {
     return this.request(`/admin/call_logs?${params}`);
   }
 
-  async getSessions(filters = {}) {
-    const params = new URLSearchParams();
-    Object.entries(filters).forEach(([key, value]) => {
-      if (value) params.append(key, value);
-    });
-    return this.request(`/admin/sessions?${params}`);
-  }
 
   // User management
   async getUsers(page = 1, pageSize = 50, search = '', role = '') {
@@ -170,8 +185,10 @@ class ApiService {
   }
 
   // Agent management
-  async getAgents() {
-    return this.request('/admin/agents');
+  async getAgents(page = 1, pageSize = 50, search = '') {
+    const params = new URLSearchParams({ page, pageSize });
+    if (search) params.append('search', search);
+    return this.request(`/admin/agents?${params}`);
   }
 
   async assignAgentToUser(userId, agentId) {
@@ -185,6 +202,75 @@ class ApiService {
     return this.request(`/admin/users/${userId}/agents/${agentId}`, {
       method: 'DELETE',
     });
+  }
+
+  // User Dashboard endpoints (read-only)
+  async getUserAgents(page = 1, pageSize = 25, search = '') {
+    const params = new URLSearchParams({ page, pageSize });
+    if (search) params.append('search', search);
+    return this.request(`/agents?${params}`, { baseURL: this.dashboardBaseURL });
+  }
+
+  async getUserCallLogs(limit = 25, from = '', to = '', agentId = '', status = '', cursor = '') {
+    const params = new URLSearchParams({ limit });
+    if (from) params.append('from', from);
+    if (to) params.append('to', to);
+    if (agentId) params.append('agent_id', agentId);
+    if (status) params.append('status', status);
+    if (cursor) params.append('cursor', cursor);
+    return this.request(`/call-logs?${params}`, { baseURL: this.dashboardBaseURL });
+  }
+
+  async getCallDetail(sessionId) {
+    return this.request(`/call-logs/${sessionId}`, { baseURL: this.dashboardBaseURL });
+  }
+
+  async getCallRecording(sessionId) {
+    return this.request(`/call-logs/${sessionId}/recording`, { baseURL: this.dashboardBaseURL });
+  }
+
+  async getUserCampaigns(page = 1, pageSize = 25, search = '') {
+    const params = new URLSearchParams({ page, pageSize });
+    if (search) params.append('search', search);
+    return this.request(`/campaigns?${params}`, { baseURL: this.dashboardBaseURL });
+  }
+
+  async getCampaignDetail(id) {
+    return this.request(`/campaigns/${id}`, { baseURL: this.dashboardBaseURL });
+  }
+
+  async getCampaignInfo(id) {
+    return this.request(`/campaigns/${id}/info`, { baseURL: this.dashboardBaseURL });
+  }
+
+  async getUserPhones(page = 1, pageSize = 25, search = '') {
+    const params = new URLSearchParams({ page, pageSize });
+    if (search) params.append('search', search);
+    return this.request(`/phones?${params}`, { baseURL: this.dashboardBaseURL });
+  }
+
+  async getPhoneDetail(phone) {
+    return this.request(`/phones/${phone}`, { baseURL: this.dashboardBaseURL });
+  }
+
+  async exportCallLogsCSV(from = '', to = '', agentId = '', status = '', cursor = '') {
+    const params = new URLSearchParams();
+    if (from) params.append('from', from);
+    if (to) params.append('to', to);
+    if (agentId) params.append('agent_id', agentId);
+    if (status) params.append('status', status);
+    if (cursor) params.append('cursor', cursor);
+
+    const response = await fetch(`${this.dashboardBaseURL}/exports/calls.csv?${params}`, {
+      method: 'GET',
+      credentials: 'include', // For HTTP-only cookies
+    });
+
+    if (!response.ok) {
+      throw new Error(`Export failed: ${response.status}`);
+    }
+
+    return response.blob();
   }
 }
 

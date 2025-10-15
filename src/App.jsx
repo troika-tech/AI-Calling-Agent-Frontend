@@ -24,7 +24,6 @@ function AppRoutes() {
         <Route path="/phones" element={<Dashboard />} />
         <Route path="/campaigns" element={<Dashboard />} />
         <Route path="/call-logs" element={<Dashboard />} />
-        <Route path="/sessions" element={<Dashboard />} />
         <Route path="/users" element={<Dashboard />} />
         <Route path="/agent-assignment" element={<Dashboard />} />
         <Route path="*" element={<Navigate to="/" replace />} />

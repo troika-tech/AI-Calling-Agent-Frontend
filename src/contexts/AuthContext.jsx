@@ -17,16 +17,13 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     const initAuth = async () => {
-      const token = localStorage.getItem('accessToken');
-      if (token) {
-        try {
-          const userData = await api.getCurrentUser();
-          setUser(userData.user);
-        } catch (error) {
-          console.error('Auth initialization failed:', error);
-          localStorage.removeItem('accessToken');
-          localStorage.removeItem('refreshToken');
-        }
+      try {
+        const userData = await api.getCurrentUser();
+        setUser(userData.user);
+      } catch (error) {
+        // User is not authenticated, which is fine
+        // Don't log error to console - it's expected behavior
+        setUser(null);
       }
       setLoading(false);
     };
@@ -34,13 +31,21 @@ export function AuthProvider({ children }) {
     initAuth();
   }, []);
 
+  // Add a method to handle session expiration
+  const handleSessionExpired = () => {
+    setUser(null);
+    // Clear any stored data and redirect to login
+    localStorage.clear();
+    window.location.href = '/';
+  };
+
   const login = async (email, password) => {
     try {
       const response = await api.login(email, password);
-      const { user: userData, tokens } = response;
+      const { user: userData } = response;
       
-      localStorage.setItem('accessToken', tokens.access);
-      localStorage.setItem('refreshToken', tokens.refresh);
+      // The backend uses HTTP-only cookies for authentication
+      // No need to store tokens in localStorage
       setUser(userData);
       
       return { success: true };
@@ -53,8 +58,8 @@ export function AuthProvider({ children }) {
   };
 
   const logout = () => {
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('refreshToken');
+    // The backend handles logout via HTTP-only cookies
+    // Just clear the user state
     setUser(null);
   };
 
@@ -62,7 +67,8 @@ export function AuthProvider({ children }) {
     user,
     login,
     logout,
-    loading
+    loading,
+    handleSessionExpired
   };
 
   return (

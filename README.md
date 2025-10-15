@@ -9,7 +9,6 @@ A beautiful, modern admin dashboard for managing the Millis SaaS API. Built with
 - 📱 **Phone Management** - Import, assign agents, and manage phone numbers
 - 📢 **Campaign Management** - Create, approve, and monitor campaigns
 - 📞 **Call Logs** - View and analyze call history
-- 👥 **Session Management** - Monitor user sessions and interactions
 - 📱 **Responsive Design** - Works on desktop, tablet, and mobile
 - 🎨 **Modern UI** - Clean, professional interface with Tailwind CSS
 
@@ -76,7 +75,6 @@ This dashboard integrates with the following Millis SaaS API endpoints:
 
 ### Call & Session Management
 - `GET /admin/call_logs` - Get call logs with filtering
-- `GET /admin/sessions` - Get sessions with filtering
 
 ## Project Structure
 
@@ -142,10 +140,6 @@ src/
 - Export functionality
 - Detailed call information
 
-### Session Management
-- Monitor user sessions
-- Filter by phone number and agent
-- Session status tracking
 - Duration and activity metrics
 
 ## Authentication

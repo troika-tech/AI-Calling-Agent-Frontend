@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Phone, 
-  PhoneCall, 
-  Users, 
+import {
+  Phone,
+  PhoneCall,
+  Users,
   Megaphone,
   TrendingUp,
   Clock,
@@ -18,59 +18,144 @@ import {
   Brain,
   Cpu
 } from 'lucide-react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell, Area, AreaChart } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Area, AreaChart } from 'recharts';
 import { useTheme } from '../contexts/ThemeContext';
+import { api } from '../services/api';
 
 const DashboardOverview = () => {
   const { isDark } = useTheme();
   const [stats, setStats] = useState({
     totalPhones: 0,
     activeCalls: 0,
-    totalSessions: 0,
     campaigns: 0,
     aiAccuracy: 0,
     responseTime: 0
   });
   const [loading, setLoading] = useState(true);
-
-  // Enhanced mock data for AI SaaS
-  const callData = [
-    { name: 'Mon', calls: 24, aiCalls: 18 },
-    { name: 'Tue', calls: 13, aiCalls: 10 },
-    { name: 'Wed', calls: 18, aiCalls: 14 },
-    { name: 'Thu', calls: 22, aiCalls: 17 },
-    { name: 'Fri', calls: 19, aiCalls: 15 },
-    { name: 'Sat', calls: 8, aiCalls: 6 },
-    { name: 'Sun', calls: 12, aiCalls: 9 }
-  ];
-
-  const sessionData = [
-    { name: 'Completed', value: 78, color: '#10B981' },
-    { name: 'In Progress', value: 15, color: '#F59E0B' },
-    { name: 'Failed', value: 7, color: '#EF4444' }
-  ];
-
-  const recentCalls = [
-    { id: 1, from: '+14155550100', to: '+14155550101', duration: '5:30', status: 'completed', time: '2 min ago', aiPowered: true },
-    { id: 2, from: '+14155550102', to: '+14155550103', duration: '3:15', status: 'completed', time: '15 min ago', aiPowered: true },
-    { id: 3, from: '+14155550104', to: '+14155550105', duration: '0:45', status: 'failed', time: '1 hour ago', aiPowered: false },
-    { id: 4, from: '+14155550106', to: '+14155550107', duration: '8:20', status: 'completed', time: '2 hours ago', aiPowered: true }
-  ];
+  const [callData, setCallData] = useState([]);
+  const [recentCalls, setRecentCalls] = useState([]);
 
   useEffect(() => {
-    // Simulate loading data
-    setTimeout(() => {
-      setStats({
-        totalPhones: 1250,
-        activeCalls: 23,
-        totalSessions: 1847,
-        campaigns: 12,
-        aiAccuracy: 94.2,
-        responseTime: 1.2
-      });
-      setLoading(false);
-    }, 1000);
+    loadDashboardData();
   }, []);
+
+  const loadDashboardData = async () => {
+    try {
+      setLoading(true);
+
+      // Fetch real data from APIs
+      const [phonesResponse, callLogsResponse] = await Promise.all([
+        api.getPhones(1, 1000).catch(() => ({ items: [], total: 0 })),
+        api.getCallLogs({ pageSize: 100 }).catch(() => ({ items: [], total: 0 }))
+      ]);
+
+      // Process phones data
+      const phones = phonesResponse.items || [];
+      const totalPhones = phonesResponse.total || phones.length;
+
+      // Process call logs data
+      const callLogs = Array.isArray(callLogsResponse) ? callLogsResponse : (callLogsResponse.items || []);
+      const totalCallLogs = callLogs.length;
+
+      // Count active calls (calls with status 'in-progress' or 'active')
+      const activeCalls = callLogs.filter(call =>
+        call.status === 'in-progress' || call.status === 'active'
+      ).length;
+
+
+      // Calculate AI accuracy (percentage of completed calls)
+      const aiAccuracy = totalCallLogs > 0
+        ? ((callLogs.filter(c => c.status === 'completed').length / totalCallLogs) * 100).toFixed(1)
+        : 0;
+
+      // Calculate average response time (average duration of calls)
+      const totalDuration = callLogs.reduce((sum, call) => sum + (call.durationSec || 0), 0);
+      const responseTime = totalCallLogs > 0
+        ? (totalDuration / totalCallLogs).toFixed(1)
+        : 0;
+
+      // Update stats
+      setStats({
+        totalPhones,
+        activeCalls,
+        campaigns: 0, // This would need a campaigns API
+        aiAccuracy: parseFloat(aiAccuracy),
+        responseTime: parseFloat(responseTime)
+      });
+
+      // Process call data for weekly chart
+      const now = new Date();
+      const weekData = [];
+      const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+      for (let i = 6; i >= 0; i--) {
+        const date = new Date(now);
+        date.setDate(date.getDate() - i);
+        const dayName = daysOfWeek[date.getDay()];
+
+        const dayCalls = callLogs.filter(call => {
+          const callDate = new Date(call.startedAt || call.createdAt);
+          return callDate.toDateString() === date.toDateString();
+        });
+
+        weekData.push({
+          name: dayName,
+          calls: dayCalls.length,
+          aiCalls: dayCalls.filter(c => c.status === 'completed').length
+        });
+      }
+      setCallData(weekData);
+
+      // Get recent calls (last 4)
+      const sortedCalls = [...callLogs]
+        .sort((a, b) => new Date(b.startedAt || b.createdAt) - new Date(a.startedAt || a.createdAt))
+        .slice(0, 4)
+        .map(call => ({
+          id: call.id || call.callId,
+          from: call.from || 'Unknown',
+          to: call.to || 'Unknown',
+          duration: formatDuration(call.durationSec || 0),
+          status: call.status || 'unknown',
+          time: getTimeAgo(call.startedAt || call.createdAt),
+          aiPowered: call.status === 'completed'
+        }));
+      setRecentCalls(sortedCalls);
+
+    } catch (error) {
+      console.error('Failed to load dashboard data:', error);
+      // Set default values on error
+      setStats({
+        totalPhones: 0,
+        activeCalls: 0,
+        campaigns: 0,
+        aiAccuracy: 0,
+        responseTime: 0
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatDuration = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const getTimeAgo = (dateString) => {
+    if (!dateString) return 'Unknown';
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now - date;
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins} min ago`;
+    if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+    return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+  };
 
   const PremiumStatCard = ({ title, value, icon: Icon, change, color = 'primary', subtitle, trend, delay = 0 }) => (
     <div 
@@ -200,16 +285,6 @@ const DashboardOverview = () => {
           delay={100}
         />
         <PremiumStatCard
-          title="AI Sessions"
-          value={stats.totalSessions.toLocaleString()}
-          icon={Brain}
-          change={8}
-          color="purple"
-          subtitle="AI-powered calls"
-          trend={8}
-          delay={200}
-        />
-        <PremiumStatCard
           title="Campaigns"
           value={stats.campaigns}
           icon={Target}
@@ -309,70 +384,6 @@ const DashboardOverview = () => {
           </div>
         </div>
 
-        {/* AI Performance Chart */}
-        <div 
-          className="relative overflow-hidden rounded-2xl border transition-all duration-300 hover:shadow-xl animate-slide-up"
-          style={{ 
-            animationDelay: '700ms',
-            background: isDark 
-              ? 'linear-gradient(135deg, rgba(15, 23, 42, 0.8) 0%, rgba(30, 41, 59, 0.6) 100%)'
-              : 'linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(248, 250, 252, 0.8) 100%)',
-            backdropFilter: 'blur(10px)',
-            borderColor: isDark ? 'rgba(148, 163, 184, 0.2)' : 'rgba(226, 232, 240, 0.8)'
-          }}
-        >
-          <div className="absolute inset-0 bg-gradient-to-br from-accent-500/5 via-transparent to-primary-500/5" />
-          <div className="relative p-8">
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center space-x-3">
-                <div className="p-2 bg-accent-500/20 text-accent-400 rounded-lg">
-                  <Target className="h-5 w-5" />
-                </div>
-                <h3 className="text-xl font-bold text-gray-900 dark:text-white font-display">AI Performance</h3>
-              </div>
-              <div className="text-right">
-                <p className="text-2xl font-bold text-gray-900 dark:text-white font-display">94.2%</p>
-                <p className="text-sm text-gray-600 dark:text-gray-300">Success Rate</p>
-              </div>
-            </div>
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={sessionData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={80}
-                  outerRadius={120}
-                  paddingAngle={2}
-                  dataKey="value"
-                >
-                  {sessionData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip 
-                  contentStyle={{
-                    background: isDark ? '#1f2937' : '#ffffff',
-                    border: isDark ? '1px solid #374151' : '1px solid #e5e7eb',
-                    borderRadius: '12px',
-                    boxShadow: '0 10px 25px rgba(0, 0, 0, 0.1)'
-                  }}
-                />
-              </PieChart>
-            </ResponsiveContainer>
-            <div className="flex justify-center space-x-8 mt-6">
-              {sessionData.map((item) => (
-                <div key={item.name} className="flex items-center space-x-2">
-                  <div 
-                    className="w-3 h-3 rounded-full" 
-                    style={{ backgroundColor: item.color }}
-                  />
-                  <span className="text-sm text-gray-600 dark:text-gray-300">{item.name}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
       </div>
 
       {/* Premium Activity Section */}
@@ -484,13 +495,6 @@ const DashboardOverview = () => {
                 <div className="flex items-center space-x-3">
                   <Megaphone className="h-5 w-5 text-accent-500" />
                   <span className="font-medium">Create AI Campaign</span>
-                </div>
-                <ArrowUpRight className="h-4 w-4 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
-              </button>
-              <button className="group w-full flex items-center justify-between p-4 rounded-xl border transition-all duration-200 hover:scale-105 hover:shadow-lg bg-white/80 dark:bg-gray-800/80 text-gray-900 dark:text-white">
-                <div className="flex items-center space-x-3">
-                  <Brain className="h-5 w-5 text-purple-500" />
-                  <span className="font-medium">View AI Sessions</span>
                 </div>
                 <ArrowUpRight className="h-4 w-4 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
               </button>

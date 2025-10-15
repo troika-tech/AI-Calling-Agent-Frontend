@@ -26,7 +26,6 @@ const Sidebar = ({ isOpen, onClose }) => {
     { name: 'Phone Management', href: '/phones', icon: Phone, gradient: ['#10b981', '#059669'] },
     { name: 'AI Campaigns', href: '/campaigns', icon: Megaphone, gradient: ['#8b5cf6', '#7c3aed'] },
     { name: 'Call Analytics', href: '/call-logs', icon: PhoneCall, gradient: ['#f97316', '#dc2626'] },
-    { name: 'AI Sessions', href: '/sessions', icon: Brain, gradient: ['#ec4899', '#f43f5e'] },
   ];
 
   // Add admin-only navigation items

@@ -70,7 +70,6 @@ POST   /api/v1/admin/phones/:phone/set_agent   # Assign agent to phone
 PATCH  /api/v1/admin/phones/:phone/tags        # Update phone tags
 POST   /api/v1/admin/campaigns/:id/approve     # Approve/reject campaign
 GET    /api/v1/admin/call_logs                 # List call logs with filtering
-GET    /api/v1/admin/sessions                  # List sessions with filtering
 GET    /api/v1/admin/users                     # List users with pagination/search/role filter
 GET    /api/v1/admin/users/:id                 # Retrieve a single user
 POST   /api/v1/admin/users                     # Create a user (admin or regular)
