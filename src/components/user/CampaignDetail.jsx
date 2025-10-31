@@ -6,7 +6,7 @@ import LoadingSpinner from '../LoadingSpinner';
 import SetCallerPhoneModal from './SetCallerPhoneModal';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
-
+import { RecordingAudioPlayer } from '../user/UserCalls';
 const CampaignDetail = ({ campaignId: propCampaignId }) => {
   const { campaignId: paramCampaignId } = useParams();
   const navigate = useNavigate();
@@ -563,7 +563,7 @@ const CampaignDetail = ({ campaignId: propCampaignId }) => {
         <div className="flex items-center space-x-2 sm:space-x-4 w-full sm:w-auto">
           <button
             onClick={handleBackClick}
-            className="flex items-center text-xs sm:text-sm text-gray-600 hover:text-gray-900 transition-colors duration-200"
+            className="flex items-center text-xs sm:text-sm text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors duration-200"
           >
             <svg className="w-4 h-4 sm:w-5 sm:h-5 mr-1 sm:mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -624,7 +624,7 @@ const CampaignDetail = ({ campaignId: propCampaignId }) => {
 
       {/* Campaign Title */}
       <div>
-        <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 break-words">
+        <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 dark:text-white break-words">
           Campaign: {campaign.name}
         </h1>
       </div>
@@ -632,8 +632,8 @@ const CampaignDetail = ({ campaignId: propCampaignId }) => {
       {/* Campaign Info Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 md:gap-6">
         {/* Status */}
-        <div className="bg-white rounded-lg shadow p-4 sm:p-6">
-          <h3 className="text-sm sm:text-base md:text-lg font-semibold text-gray-900 mb-3 sm:mb-4">STATUS</h3>
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 sm:p-6">
+          <h3 className="text-sm sm:text-base md:text-lg font-semibold text-gray-900 dark:text-white mb-3 sm:mb-4">STATUS</h3>
           <div className="flex items-center">
             <span className={`inline-flex items-center px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-medium ${
               campaign.status === 'active' || campaign.status === 'running'
@@ -650,21 +650,21 @@ const CampaignDetail = ({ campaignId: propCampaignId }) => {
         </div>
 
         {/* Records Count */}
-        <div className="bg-white rounded-lg shadow p-4 sm:p-6">
-          <h3 className="text-sm sm:text-base md:text-lg font-semibold text-gray-900 mb-3 sm:mb-4">CAMPAIGN RECORDS</h3>
-          <p className="text-xl sm:text-2xl font-bold text-gray-900">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 sm:p-6">
+          <h3 className="text-sm sm:text-base md:text-lg font-semibold text-gray-900 dark:text-white mb-3 sm:mb-4">CAMPAIGN RECORDS</h3>
+          <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
             {nonCallerRecords.length}
           </p>
-          <p className="text-xs sm:text-sm text-gray-500 mt-1 sm:mt-2">
+          <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1 sm:mt-2">
             Target contacts
           </p>
         </div>
       </div>
 
       {/* Caller Section */}
-      <div className="bg-white rounded-lg shadow p-4 sm:p-6">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 sm:p-6">
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 sm:gap-4 mb-4">
-          <h3 className="text-base sm:text-lg font-semibold text-gray-900">CALLER</h3>
+          <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white">CALLER</h3>
           <button
             onClick={handleSetCallerPhone}
             className="w-full sm:w-auto px-3 sm:px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-200 text-sm sm:text-base"
@@ -675,37 +675,37 @@ const CampaignDetail = ({ campaignId: propCampaignId }) => {
         
         {/* Desktop Table View (screens >= 412px) */}
         <div className="hidden min-[412px]:block overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+          <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+            <thead className="bg-gray-50 dark:bg-gray-700">
               <tr>
-                <th className="px-3 sm:px-4 md:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-3 sm:px-4 md:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                   Phone
                 </th>
-                <th className="px-3 sm:px-4 md:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-3 sm:px-4 md:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                   Knowledge Base
                 </th>
-                <th className="px-3 sm:px-4 md:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-3 sm:px-4 md:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                   Call Status
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
               {callerPhone || campaign?.assigned_phone_number ? (
-                <tr className="hover:bg-gray-50">
+                <tr className="hover:bg-gray-50 dark:hover:bg-gray-700">
                   <td className="px-3 sm:px-4 md:px-6 py-3 sm:py-4">
                     <div className="flex items-center">
                       <div className="flex-shrink-0 h-8 w-8 sm:h-10 sm:w-10">
-                        <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-blue-100 flex items-center justify-center">
-                          <svg className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
+                          <svg className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                           </svg>
                         </div>
                       </div>
                       <div className="ml-3 sm:ml-4 min-w-0 flex-1">
-                        <div className="text-xs sm:text-sm font-medium text-gray-900 truncate">
+                        <div className="text-xs sm:text-sm font-medium text-gray-900 dark:text-white truncate">
                           {callerPhone || campaign?.assigned_phone_number}
                         </div>
-                        <div className="text-xs sm:text-sm text-gray-500">
+                        <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
                           Caller Phone
                         </div>
                       </div>
@@ -726,7 +726,7 @@ const CampaignDetail = ({ campaignId: propCampaignId }) => {
                           </span>
                         ))
                       ) : (
-                        <span className="text-xs sm:text-sm text-gray-500">No documents</span>
+                        <span className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">No documents</span>
                       )}
                     </div>
                   </td>
@@ -745,11 +745,11 @@ const CampaignDetail = ({ campaignId: propCampaignId }) => {
                 <tr>
                   <td colSpan="3" className="px-3 sm:px-6 py-8 sm:py-12 text-center">
                     <div className="text-center">
-                      <svg className="mx-auto h-8 w-8 sm:h-12 sm:w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="mx-auto h-8 w-8 sm:h-12 sm:w-12 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                       </svg>
-                      <h3 className="mt-2 text-xs sm:text-sm font-medium text-gray-900">No caller phone set</h3>
-                      <p className="mt-1 text-xs sm:text-sm text-gray-500">
+                      <h3 className="mt-2 text-xs sm:text-sm font-medium text-gray-900 dark:text-white">No caller phone set</h3>
+                      <p className="mt-1 text-xs sm:text-sm text-gray-500 dark:text-gray-400">
                         Set a caller phone to start making calls.
                       </p>
                     </div>
@@ -763,18 +763,18 @@ const CampaignDetail = ({ campaignId: propCampaignId }) => {
         {/* Mobile Card View (screens < 412px) */}
         <div className="min-[412px]:hidden">
           {callerPhone || campaign?.assigned_phone_number ? (
-            <div className="p-3 border border-gray-200 rounded-lg">
+            <div className="p-3 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800">
               <div className="flex items-start gap-3 mb-3">
-                <div className="flex-shrink-0 h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
-                  <svg className="h-5 w-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="flex-shrink-0 h-10 w-10 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
+                  <svg className="h-5 w-5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                   </svg>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="text-sm font-medium text-gray-900 truncate mb-1">
+                  <div className="text-sm font-medium text-gray-900 dark:text-white truncate mb-1">
                     {callerPhone || campaign?.assigned_phone_number}
                   </div>
-                  <div className="text-xs text-gray-500 mb-2">Caller Phone</div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400 mb-2">Caller Phone</div>
                   <div className="flex flex-wrap gap-1.5 mb-2">
                     {callerDocuments && callerDocuments.length > 0 ? (
                       callerDocuments.map((docId) => (
@@ -789,10 +789,10 @@ const CampaignDetail = ({ campaignId: propCampaignId }) => {
                         </span>
                       ))
                     ) : (
-                      <span className="text-xs text-gray-500">No documents</span>
+                      <span className="text-xs text-gray-500 dark:text-gray-400">No documents</span>
                     )}
                   </div>
-                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200">
                     <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                     </svg>
@@ -802,12 +802,12 @@ const CampaignDetail = ({ campaignId: propCampaignId }) => {
               </div>
             </div>
           ) : (
-            <div className="p-6 text-center border border-gray-200 rounded-lg">
-              <svg className="mx-auto h-10 w-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="p-6 text-center border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800">
+              <svg className="mx-auto h-10 w-10 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
               </svg>
-              <h3 className="mt-2 text-sm font-medium text-gray-900">No caller phone set</h3>
-              <p className="mt-1 text-xs text-gray-500">
+              <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-white">No caller phone set</h3>
+              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                 Set a caller phone to start making calls.
               </p>
             </div>
@@ -816,18 +816,18 @@ const CampaignDetail = ({ campaignId: propCampaignId }) => {
       </div>
 
       {/* Settings Section */}
-      <div className="bg-white rounded-lg shadow p-4 sm:p-6">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 sm:p-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
           <div className="flex-1 min-w-0">
-            <h3 className="text-sm sm:text-base md:text-lg font-semibold text-gray-900 mb-1 sm:mb-2">
+            <h3 className="text-sm sm:text-base md:text-lg font-semibold text-gray-900 dark:text-white mb-1 sm:mb-2">
               Include extra metadata in agent prompt
             </h3>
-            <p className="text-xs sm:text-sm text-gray-600">
+            <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
               This will include additional context in the AI agent's prompts
             </p>
           </div>
           <div className="flex items-center space-x-2 sm:space-x-3 flex-shrink-0">
-            <button className="text-xs sm:text-sm text-blue-600 hover:underline">
+            <button className="text-xs sm:text-sm text-blue-600 dark:text-blue-400 hover:underline">
               Learn more
             </button>
             <div className="relative">
@@ -844,45 +844,45 @@ const CampaignDetail = ({ campaignId: propCampaignId }) => {
       </div>
 
       {/* Campaign Records Table */}
-      <div className="bg-white rounded-lg shadow overflow-hidden">
-        <div className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 border-b border-gray-200">
-          <h3 className="text-base sm:text-lg font-semibold text-gray-900">Campaign Records</h3>
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
+        <div className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 border-b border-gray-200 dark:border-gray-700">
+          <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white">Campaign Records</h3>
         </div>
         
         {/* Desktop Table View (screens >= 412px) */}
         <div className="hidden min-[412px]:block overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+          <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+            <thead className="bg-gray-50 dark:bg-gray-700">
               <tr>
-                <th className="px-3 sm:px-4 md:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-3 sm:px-4 md:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                   Phone
                 </th>
-                <th className="px-3 sm:px-4 md:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-3 sm:px-4 md:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                   Call Status
                 </th>
-                <th className="px-3 sm:px-4 md:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-3 sm:px-4 md:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                   Call Recording
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
               {nonCallerRecords.length > 0 ? (
                 nonCallerRecords.map((record, index) => (
-                  <tr key={index} className="hover:bg-gray-50">
+                  <tr key={index} className="hover:bg-gray-50 dark:hover:bg-gray-700">
                     <td className="px-3 sm:px-4 md:px-6 py-3 sm:py-4">
                       <div className="flex items-center">
                         <div className="flex-shrink-0 h-8 w-8 sm:h-10 sm:w-10">
-                          <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-blue-100 flex items-center justify-center">
-                            <svg className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
+                            <svg className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                             </svg>
                           </div>
                         </div>
                         <div className="ml-3 sm:ml-4 min-w-0 flex-1">
-                          <div className="text-xs sm:text-sm font-medium text-gray-900 truncate">
+                          <div className="text-xs sm:text-sm font-medium text-gray-900 dark:text-white truncate">
                             {record.phone}
                           </div>
-                          <div className="text-xs sm:text-sm text-gray-500 truncate">
+                          <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 truncate">
                             {record.name || 'Contact'}
                           </div>
                         </div>
@@ -934,44 +934,10 @@ const CampaignDetail = ({ campaignId: propCampaignId }) => {
                     <td className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 whitespace-nowrap">
                       {record.call_recording_url ? (
                         <div className="flex items-center space-x-1 sm:space-x-2">
-                          <audio 
-                            controls 
-                            preload="none"
-                            crossOrigin="anonymous"
-                            className="h-6 sm:h-8 w-32 sm:w-48"
-                            style={{ maxWidth: '200px' }}
-                            onError={(e) => {
-                              console.error('Audio playback error:', e);
-                              console.error('Recording URL:', record.call_recording_url);
-                              console.error('Audio error details:', {
-                                error: e.target.error,
-                                code: e.target.error?.code,
-                                message: e.target.error?.message,
-                                networkState: e.target.networkState,
-                                readyState: e.target.readyState
-                              });
-                              
-                              // Show user-friendly error
-                              if (e.target.error) {
-                                const errorMsg = e.target.error.code === e.target.error.MEDIA_ERR_SRC_NOT_SUPPORTED
-                                  ? 'Recording format not supported'
-                                  : e.target.error.code === e.target.error.MEDIA_ERR_NETWORK
-                                  ? 'Network error loading recording'
-                                  : 'Failed to load recording';
-                                console.error('Error:', errorMsg);
-                              }
-                            }}
-                            onLoadStart={() => {}}
-                            onLoadedMetadata={() => {}}
-                            onLoadedData={() => {}}
-                            onCanPlay={() => {}}
-                            onProgress={() => {}}
-                          >
-                            <source src={api.getRecordingProxyUrl(record.call_recording_url) || record.call_recording_url} type="audio/mpeg" />
-                            <source src={api.getRecordingProxyUrl(record.call_recording_url) || record.call_recording_url} type="audio/wav" />
-                            <source src={api.getRecordingProxyUrl(record.call_recording_url) || record.call_recording_url} type="audio/mp3" />
-                            Your browser does not support the audio element.
-                          </audio>
+                        <RecordingAudioPlayer 
+  recordingUrl={record.call_recording_url}
+  callId={record.id || record._id}
+/>
                           <button
                             onClick={() => handleDownloadRecording(record.call_recording_url, record.phone)}
                             disabled={downloadingRecordings.has(`${record.phone}-${record.call_recording_url}`)}
@@ -997,7 +963,7 @@ const CampaignDetail = ({ campaignId: propCampaignId }) => {
                 <tr>
                   <td colSpan="3" className="px-6 py-12 text-center">
                     <div className="text-center">
-                      <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                       </svg>
                       <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-white">No campaign record found</h3>
@@ -1016,21 +982,21 @@ const CampaignDetail = ({ campaignId: propCampaignId }) => {
         </div>
 
         {/* Mobile Card View (screens < 412px) */}
-        <div className="min-[412px]:hidden divide-y divide-gray-200">
+        <div className="min-[412px]:hidden divide-y divide-gray-200 dark:divide-gray-700">
           {nonCallerRecords.length > 0 ? (
             nonCallerRecords.map((record, index) => (
-              <div key={index} className="p-3 hover:bg-gray-50">
+              <div key={index} className="p-3 hover:bg-gray-50 dark:hover:bg-gray-700 bg-white dark:bg-gray-800">
                 <div className="flex items-start gap-3 mb-2">
-                  <div className="flex-shrink-0 h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
-                    <svg className="h-5 w-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <div className="flex-shrink-0 h-10 w-10 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
+                    <svg className="h-5 w-5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                     </svg>
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="text-sm font-medium text-gray-900 truncate mb-1">
+                    <div className="text-sm font-medium text-gray-900 dark:text-white truncate mb-1">
                       {record.phone}
                     </div>
-                    <div className="text-xs text-gray-500 truncate mb-2">
+                    <div className="text-xs text-gray-500 dark:text-gray-400 truncate mb-2">
                       {record.name || 'Contact'}
                     </div>
                     <div className="flex items-center gap-2 mb-2">
@@ -1055,11 +1021,10 @@ const CampaignDetail = ({ campaignId: propCampaignId }) => {
                     </div>
                     {record.call_recording_url ? (
                       <div className="flex items-center gap-2">
-                        <audio controls preload="none" className="h-6 w-full max-w-[200px]" style={{ maxWidth: '200px' }}>
-                          <source src={api.getRecordingProxyUrl(record.call_recording_url) || record.call_recording_url} type="audio/mpeg" />
-                          <source src={api.getRecordingProxyUrl(record.call_recording_url) || record.call_recording_url} type="audio/wav" />
-                          <source src={api.getRecordingProxyUrl(record.call_recording_url) || record.call_recording_url} type="audio/mp3" />
-                        </audio>
+                  <RecordingAudioPlayer 
+  recordingUrl={record.call_recording_url}
+  callId={record.id || record._id}
+/>
                         <button
                           onClick={() => handleDownloadRecording(record.call_recording_url, record.phone)}
                           disabled={downloadingRecordings.has(`${record.phone}-${record.call_recording_url}`)}
@@ -1081,12 +1046,12 @@ const CampaignDetail = ({ campaignId: propCampaignId }) => {
               </div>
             ))
           ) : (
-            <div className="p-6 text-center">
-              <svg className="mx-auto h-10 w-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="p-6 text-center bg-white dark:bg-gray-800">
+              <svg className="mx-auto h-10 w-10 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
               </svg>
-              <h3 className="mt-2 text-sm font-medium text-gray-900">No campaign record found</h3>
-              <p className="mt-1 text-xs text-gray-500">
+              <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-white">No campaign record found</h3>
+              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                 Get started by adding records to this campaign.
               </p>
               <button className="mt-4 px-3 py-2 text-xs bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-200">

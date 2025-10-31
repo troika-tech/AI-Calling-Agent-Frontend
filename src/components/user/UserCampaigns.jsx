@@ -257,8 +257,8 @@ const UserCampaigns = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Campaigns</h1>
-          <p className="text-sm sm:text-base text-gray-600 mt-1 sm:mt-2">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">Campaigns</h1>
+          <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mt-1 sm:mt-2">
             Create and manage your outbound calling campaigns.
           </p>
         </div>
@@ -283,9 +283,9 @@ const UserCampaigns = () => {
       </div>
 
       {/* Search */}
-      <div className="bg-white rounded-lg shadow p-4 sm:p-6">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 sm:p-6">
         <div className="w-full max-w-md">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
             Search Campaigns
           </label>
           <div className="relative">
@@ -294,9 +294,9 @@ const UserCampaigns = () => {
               value={searchTerm}
               onChange={handleSearch}
               placeholder="Search by campaign name..."
-              className="w-full px-4 py-2 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm sm:text-base"
+              className="w-full px-4 py-2 pl-10 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-400 text-sm sm:text-base"
             />
-            <svg className="absolute left-3 top-2.5 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="absolute left-3 top-2.5 w-5 h-5 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
           </div>
@@ -315,7 +315,7 @@ const UserCampaigns = () => {
           return (
             <div
               key={campaign.id || campaign._id}
-              className="bg-white rounded-lg sm:rounded-xl shadow-md hover:shadow-xl transition-all duration-300 border border-gray-100 hover:border-blue-300 overflow-hidden group cursor-pointer transform hover:-translate-y-1 active:scale-[0.98]"
+              className="bg-white dark:bg-gray-800 rounded-lg sm:rounded-xl shadow-md hover:shadow-xl transition-all duration-300 border border-gray-100 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600 overflow-hidden group cursor-pointer transform hover:-translate-y-1 active:scale-[0.98]"
               onClick={() => handleCampaignClick(campaign)}
             >
               <div className="p-4 sm:p-6">
@@ -329,13 +329,13 @@ const UserCampaigns = () => {
                           e.stopPropagation();
                           handleCampaignClick(campaign);
                         }}
-                        className="text-base sm:text-lg font-semibold text-gray-900 hover:text-blue-600 transition-colors duration-200 text-left group-hover:text-blue-600 truncate flex-1"
+                        className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-200 text-left group-hover:text-blue-600 dark:group-hover:text-blue-400 truncate flex-1"
                       >
                         {campaign.name || 'Unnamed Campaign'}
                       </button>
                     </div>
                     {campaign.description && (
-                      <p className="text-xs sm:text-sm text-gray-600 ml-7 sm:ml-10 line-clamp-2 break-words">
+                      <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 ml-7 sm:ml-10 line-clamp-2 break-words">
                         {campaign.description}
                       </p>
                     )}
@@ -347,7 +347,7 @@ const UserCampaigns = () => {
                       e.stopPropagation();
                       handleCampaignClick(campaign);
                     }}
-                    className="w-full sm:w-auto px-3 sm:px-4 py-2 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-lg font-medium transition-all duration-200 flex items-center justify-center sm:justify-start gap-2 group-hover:bg-blue-100 group-hover:shadow-md text-sm sm:text-base flex-shrink-0"
+                    className="w-full sm:w-auto px-3 sm:px-4 py-2 bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 text-blue-600 dark:text-blue-400 rounded-lg font-medium transition-all duration-200 flex items-center justify-center sm:justify-start gap-2 group-hover:bg-blue-100 dark:group-hover:bg-blue-900/50 group-hover:shadow-md text-sm sm:text-base flex-shrink-0"
                   >
                     <span>View Details</span>
                     <span className="hidden sm:inline">→</span>
@@ -355,13 +355,13 @@ const UserCampaigns = () => {
                 </div>
 
                 {/* Bottom Section - Stats */}
-                <div className="mt-4 pt-4 border-t border-gray-100 grid grid-cols-3 gap-2 sm:gap-4">
+                <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-700 grid grid-cols-3 gap-2 sm:gap-4">
                   {/* Caller Count */}
                   <div className="flex items-center gap-1.5 sm:gap-2">
                     <span className="text-lg sm:text-xl flex-shrink-0">📞</span>
                     <div className="min-w-0">
-                      <p className="text-xs text-gray-500 font-medium truncate">Caller</p>
-                      <p className="text-xs sm:text-sm font-semibold text-gray-900">{callerCount}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 font-medium truncate">Caller</p>
+                      <p className="text-xs sm:text-sm font-semibold text-gray-900 dark:text-white">{callerCount}</p>
                     </div>
                   </div>
 
@@ -369,7 +369,7 @@ const UserCampaigns = () => {
                   <div className="flex items-center gap-1.5 sm:gap-2">
                     <span className="text-lg sm:text-xl flex-shrink-0">{getStatusIcon(campaign.status)}</span>
                     <div className="min-w-0">
-                      <p className="text-xs text-gray-500 font-medium truncate">Status</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 font-medium truncate">Status</p>
                       <span className={`inline-flex items-center px-1.5 sm:px-2 py-0.5 rounded-full text-xs font-medium ${getStatusColor(campaign.status)} truncate`}>
                         {campaign.status.replace('_', ' ')}
                       </span>
@@ -380,8 +380,8 @@ const UserCampaigns = () => {
                   <div className="flex items-center gap-1.5 sm:gap-2">
                     <span className="text-lg sm:text-xl flex-shrink-0">📊</span>
                     <div className="min-w-0">
-                      <p className="text-xs text-gray-500 font-medium truncate">Records</p>
-                      <p className="text-xs sm:text-sm font-semibold text-gray-900">{recordCount}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 font-medium truncate">Records</p>
+                      <p className="text-xs sm:text-sm font-semibold text-gray-900 dark:text-white">{recordCount}</p>
                     </div>
                   </div>
                 </div>
@@ -392,10 +392,10 @@ const UserCampaigns = () => {
       </div>
 
       {campaigns.length === 0 && !loading && (
-        <div className="bg-white rounded-lg sm:rounded-xl shadow-md p-8 sm:p-12 text-center">
+        <div className="bg-white dark:bg-gray-800 rounded-lg sm:rounded-xl shadow-md p-8 sm:p-12 text-center">
           <div className="text-4xl sm:text-6xl mb-4">📭</div>
-          <h3 className="mt-2 text-base sm:text-lg font-semibold text-gray-900">No campaigns found</h3>
-          <p className="mt-2 text-xs sm:text-sm text-gray-500 px-4">
+          <h3 className="mt-2 text-base sm:text-lg font-semibold text-gray-900 dark:text-white">No campaigns found</h3>
+          <p className="mt-2 text-xs sm:text-sm text-gray-500 dark:text-gray-400 px-4">
             {searchTerm ? 'Try adjusting your search terms.' : 'No campaigns are currently available. Create your first campaign to get started!'}
           </p>
         </div>
@@ -403,23 +403,23 @@ const UserCampaigns = () => {
 
       {/* Pagination */}
       {totalPages > 1 && (
-        <div className="bg-white rounded-lg shadow px-4 sm:px-6 py-3 sm:py-4">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow px-4 sm:px-6 py-3 sm:py-4">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-0">
-            <div className="text-xs sm:text-sm text-gray-700">
+            <div className="text-xs sm:text-sm text-gray-700 dark:text-gray-300">
               Page {currentPage} of {totalPages}
             </div>
             <div className="flex space-x-2 w-full sm:w-auto">
               <button
                 onClick={() => handlePageChange(currentPage - 1)}
                 disabled={currentPage === 1}
-                className="flex-1 sm:flex-initial px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="flex-1 sm:flex-initial px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 Previous
               </button>
               <button
                 onClick={() => handlePageChange(currentPage + 1)}
                 disabled={currentPage === totalPages}
-                className="flex-1 sm:flex-initial px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="flex-1 sm:flex-initial px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 Next
               </button>
