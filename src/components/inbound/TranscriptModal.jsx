@@ -12,6 +12,7 @@ import {
   FileText,
   ExternalLink
 } from 'lucide-react';
+import { api } from '../../services/api';
 
 const TranscriptModal = ({ call, onClose }) => {
   const [isPlaying, setIsPlaying] = useState(false);
@@ -58,15 +59,55 @@ const TranscriptModal = ({ call, onClose }) => {
     document.body.removeChild(a);
   };
 
-  const handleDownloadRecording = () => {
+  const handleDownloadRecording = async () => {
     if (call.recording_url) {
-      const a = document.createElement('a');
-      a.href = call.recording_url;
-      a.download = `recording-${call.id}.mp3`;
-      a.target = '_blank';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
+      try {
+        // Use proxy URL to fetch with authentication
+        const proxyUrl = api.getRecordingProxyUrl(call.recording_url);
+        
+        if (!proxyUrl) {
+          throw new Error('Invalid recording URL');
+        }
+        
+        // Fetch the recording as a blob through proxy
+        const response = await fetch(proxyUrl, {
+          method: 'GET',
+          headers: {
+            'Accept': 'audio/mpeg, audio/mp3, audio/wav, audio/*',
+          },
+          credentials: 'include' // This sends HTTP-only cookies for authentication
+        });
+        
+        if (!response.ok) {
+          throw new Error(`Failed to download recording: ${response.status} ${response.statusText}`);
+        }
+        
+        // Get the blob
+        const blob = await response.blob();
+        
+        if (!blob || blob.size === 0) {
+          throw new Error('Received empty audio file');
+        }
+        
+        // Create object URL
+        const url = window.URL.createObjectURL(blob);
+        
+        // Create download link
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `recording-${call.id}.mp3`;
+        document.body.appendChild(a);
+        
+        // Trigger download
+        a.click();
+        
+        // Cleanup
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+      } catch (error) {
+        console.error('Error downloading recording:', error);
+        alert(`Failed to download recording: ${error.message}`);
+      }
     }
   };
 

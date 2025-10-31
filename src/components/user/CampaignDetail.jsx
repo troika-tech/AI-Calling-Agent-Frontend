@@ -317,12 +317,20 @@ const CampaignDetail = ({ campaignId: propCampaignId }) => {
       // Add to downloading set
       setDownloadingRecordings(prev => new Set(prev).add(downloadKey));
       
-      // Fetch the recording as a blob
-      const response = await fetch(recordingUrl, {
+      // Use proxy URL to fetch with authentication
+      const proxyUrl = api.getRecordingProxyUrl(recordingUrl);
+      
+      if (!proxyUrl) {
+        throw new Error('Invalid recording URL');
+      }
+      
+      // Fetch the recording as a blob through proxy
+      const response = await fetch(proxyUrl, {
         method: 'GET',
         headers: {
           'Accept': 'audio/mpeg, audio/mp3, audio/wav, audio/*',
-        }
+        },
+        credentials: 'include' // This sends HTTP-only cookies for authentication
       });
       
       if (!response.ok) {
@@ -959,9 +967,9 @@ const CampaignDetail = ({ campaignId: propCampaignId }) => {
                             onCanPlay={() => {}}
                             onProgress={() => {}}
                           >
-                            <source src={record.call_recording_url} type="audio/mpeg" />
-                            <source src={record.call_recording_url} type="audio/wav" />
-                            <source src={record.call_recording_url} type="audio/mp3" />
+                            <source src={api.getRecordingProxyUrl(record.call_recording_url) || record.call_recording_url} type="audio/mpeg" />
+                            <source src={api.getRecordingProxyUrl(record.call_recording_url) || record.call_recording_url} type="audio/wav" />
+                            <source src={api.getRecordingProxyUrl(record.call_recording_url) || record.call_recording_url} type="audio/mp3" />
                             Your browser does not support the audio element.
                           </audio>
                           <button
@@ -1048,9 +1056,9 @@ const CampaignDetail = ({ campaignId: propCampaignId }) => {
                     {record.call_recording_url ? (
                       <div className="flex items-center gap-2">
                         <audio controls preload="none" className="h-6 w-full max-w-[200px]" style={{ maxWidth: '200px' }}>
-                          <source src={record.call_recording_url} type="audio/mpeg" />
-                          <source src={record.call_recording_url} type="audio/wav" />
-                          <source src={record.call_recording_url} type="audio/mp3" />
+                          <source src={api.getRecordingProxyUrl(record.call_recording_url) || record.call_recording_url} type="audio/mpeg" />
+                          <source src={api.getRecordingProxyUrl(record.call_recording_url) || record.call_recording_url} type="audio/wav" />
+                          <source src={api.getRecordingProxyUrl(record.call_recording_url) || record.call_recording_url} type="audio/mp3" />
                         </audio>
                         <button
                           onClick={() => handleDownloadRecording(record.call_recording_url, record.phone)}

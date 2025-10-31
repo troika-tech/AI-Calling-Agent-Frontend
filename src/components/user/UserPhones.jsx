@@ -416,7 +416,7 @@ const UserPhones = () => {
               async () => {
                 try {
                   // Call the sync endpoint
-                  const response = await fetch('http://localhost:5000/api/v1/user/voice-agents/sync-to-millis', {
+                  const response = await fetch(`${api.baseURL}/user/voice-agents/sync-to-millis`, {
                     method: 'POST',
                     credentials: 'include',
                     headers: {

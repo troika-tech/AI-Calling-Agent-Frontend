@@ -2,10 +2,16 @@
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api/v1';
 const DASHBOARD_BASE_URL = import.meta.env.VITE_DASHBOARD_BASE_URL || 'http://localhost:5000/api';
 
+// Extract backend base URL from API_BASE_URL or use dedicated env variable
+// VITE_BACKEND_URL should be the base URL without /api/v1 (e.g., http://localhost:5000)
+const BACKEND_BASE_URL = import.meta.env.VITE_BACKEND_URL || 
+  (API_BASE_URL ? API_BASE_URL.replace(/\/api\/v1\/?$/, '').replace(/\/api\/?$/, '') : 'http://localhost:5000');
+
 class ApiService {
   constructor() {
     this.baseURL = API_BASE_URL;
     this.dashboardBaseURL = DASHBOARD_BASE_URL;
+    this.backendBaseURL = BACKEND_BASE_URL;
     this.isRefreshing = false;
     this.requestQueue = new Map();
     this.lastRequestTime = new Map();
@@ -722,7 +728,20 @@ class ApiService {
     // Return proxy URL that will authenticate with backend
     // Note: Audio elements can't send Authorization headers, so auth relies on cookies/credentials
     if (!recordingUrl) return null;
-    const encodedUrl = encodeURIComponent(recordingUrl);
+    
+    // If recording URL contains localhost, replace it with the configured backend URL
+    // This handles cases where backend returns hardcoded localhost URLs
+    let normalizedUrl = recordingUrl;
+    if (recordingUrl.includes('localhost:5000') || recordingUrl.includes('localhost:')) {
+      // Replace localhost URLs with configured backend URL
+      const urlObj = new URL(recordingUrl);
+      if (urlObj.hostname === 'localhost') {
+        const backendUrl = new URL(this.backendBaseURL);
+        normalizedUrl = recordingUrl.replace(urlObj.origin, backendUrl.origin);
+      }
+    }
+    
+    const encodedUrl = encodeURIComponent(normalizedUrl);
     return `${this.baseURL}/inbound/calls/recording/proxy?url=${encodedUrl}`;
   }
 
