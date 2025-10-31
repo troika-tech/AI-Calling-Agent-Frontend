@@ -2,16 +2,21 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { api } from '../services/api';
 import LoadingSpinner from './LoadingSpinner';
+import { useToast } from '../contexts/ToastContext';
 
 const UserManagement = () => {
   const { user: currentUser } = useAuth();
+  const { showConfirm, showSuccess, showError } = useToast();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showEditSubscriptionModal, setShowEditSubscriptionModal] = useState(false);
+  const [showViewUsageModal, setShowViewUsageModal] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
+  const [usageData, setUsageData] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [searchTerm, setSearchTerm] = useState('');
@@ -26,7 +31,19 @@ const UserManagement = () => {
     name: '',
     email: '',
     password: '',
-    role: 'user'
+    role: 'inbound',
+    subscription: {
+      plan: 'basic',
+      call_minutes_allocated: 0
+    }
+  });
+
+  const [subscriptionFormData, setSubscriptionFormData] = useState({
+    plan: 'basic',
+    call_minutes_allocated: 0,
+    start_date: '',
+    end_date: '',
+    notes: ''
   });
 
   useEffect(() => {
@@ -89,21 +106,66 @@ const UserManagement = () => {
   const handleDeleteUser = async (userId) => {
     // Prevent self-deletion
     if (userId === currentUser?.id) {
-      setError('You cannot delete your own account');
+      showError('You cannot delete your own account');
       return;
     }
 
-    if (!window.confirm('Are you sure you want to delete this user?')) {
-      return;
-    }
+    showConfirm(
+      'Are you sure you want to delete this user? This action cannot be undone.',
+      'Confirm Delete',
+      async () => {
+        try {
+          setError('');
+          await api.deleteUser(userId);
+          showSuccess('User deleted successfully');
+          fetchUsers();
+        } catch (err) {
+          showError(err.message || 'Failed to delete user');
+        }
+      }
+    );
+  };
 
+  const handleUpdateUserStatus = async (userId, status, reason = '') => {
     try {
       setError('');
-      await api.deleteUser(userId);
-      setSuccess('User deleted successfully');
+      await api.updateUserStatus(userId, status, reason);
+      setSuccess(`User ${status} successfully`);
       fetchUsers();
     } catch (err) {
-      setError(err.message || 'Failed to delete user');
+      setError(err.message || `Failed to ${status} user`);
+    }
+  };
+
+  const handleUpdateSubscription = async (e) => {
+    e.preventDefault();
+    try {
+      setError('');
+      await api.updateUserSubscription(editingUser.id, subscriptionFormData);
+      setSuccess('Subscription updated successfully');
+      setShowEditSubscriptionModal(false);
+      setEditingUser(null);
+      setSubscriptionFormData({
+        plan: 'basic',
+        call_minutes_allocated: 0,
+        start_date: '',
+        end_date: '',
+        notes: ''
+      });
+      fetchUsers();
+    } catch (err) {
+      setError(err.message || 'Failed to update subscription');
+    }
+  };
+
+  const handleViewUsage = async (userId) => {
+    try {
+      setError('');
+      const usage = await api.getUserUsage(userId);
+      setUsageData(usage);
+      setShowViewUsageModal(true);
+    } catch (err) {
+      setError(err.message || 'Failed to fetch usage data');
     }
   };
 
@@ -113,16 +175,47 @@ const UserManagement = () => {
       name: user.name || '',
       email: user.email || '',
       password: '',
-      role: user.role || 'user'
+      role: user.role || 'inbound'
     });
     setShowEditModal(true);
+  };
+
+  const openEditSubscriptionModal = (user) => {
+    setEditingUser(user);
+    setSubscriptionFormData({
+      plan: user.subscription?.plan || 'basic',
+      call_minutes_allocated: user.subscription?.call_minutes_allocated || 0,
+      start_date: user.subscription?.start_date ? new Date(user.subscription.start_date).toISOString().split('T')[0] : '',
+      end_date: user.subscription?.end_date ? new Date(user.subscription.end_date).toISOString().split('T')[0] : '',
+      notes: user.subscription?.notes || ''
+    });
+    setShowEditSubscriptionModal(true);
   };
 
   const closeModals = () => {
     setShowCreateModal(false);
     setShowEditModal(false);
+    setShowEditSubscriptionModal(false);
+    setShowViewUsageModal(false);
     setEditingUser(null);
-    setFormData({ name: '', email: '', password: '', role: 'user' });
+    setUsageData(null);
+    setFormData({ 
+      name: '', 
+      email: '', 
+      password: '', 
+      role: 'inbound',
+      subscription: {
+        plan: 'basic',
+        call_minutes_allocated: 0
+      }
+    });
+    setSubscriptionFormData({
+      plan: 'basic',
+      call_minutes_allocated: 0,
+      start_date: '',
+      end_date: '',
+      notes: ''
+    });
     setError('');
   };
 
@@ -222,8 +315,9 @@ const UserManagement = () => {
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="">All Roles</option>
-              <option value="user">User</option>
               <option value="admin">Admin</option>
+              <option value="inbound">Inbound</option>
+              <option value="outbound">Outbound</option>
             </select>
           </div>
           <div className="min-w-24">
@@ -275,10 +369,13 @@ const UserManagement = () => {
                   Role
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Created
+                  Status
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Updated
+                  Subscription
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Created
                 </th>
                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Actions
@@ -301,37 +398,91 @@ const UserManagement = () => {
                       className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
                         user.role === 'admin'
                           ? 'bg-red-100 text-red-800'
-                          : 'bg-blue-100 text-blue-800'
+                          : user.role === 'inbound'
+                          ? 'bg-blue-100 text-blue-800'
+                          : 'bg-green-100 text-green-800'
                       }`}
                     >
                       {user.role}
                     </span>
                   </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span
+                      className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                        user.status === 'active'
+                          ? 'bg-green-100 text-green-800'
+                          : user.status === 'suspended'
+                          ? 'bg-red-100 text-red-800'
+                          : 'bg-yellow-100 text-yellow-800'
+                      }`}
+                    >
+                      {user.status}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm text-gray-900">
+                      {user.subscription?.plan || 'basic'}
+                    </div>
+                    <div className="text-sm text-gray-500">
+                      {user.subscription?.call_minutes_allocated || 0} min
+                    </div>
+                  </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {user.createdAt ? formatDate(user.createdAt) : 'N/A'}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {user.updatedAt ? formatDate(user.updatedAt) : 'N/A'}
-                  </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <button
-                      onClick={() => openEditModal(user)}
-                      className="text-indigo-600 hover:text-indigo-900 mr-3"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => handleDeleteUser(user.id)}
-                      disabled={user.id === currentUser?.id}
-                      className={`mr-3 ${
-                        user.id === currentUser?.id
-                          ? 'text-gray-400 cursor-not-allowed'
-                          : 'text-red-600 hover:text-red-900'
-                      }`}
-                      title={user.id === currentUser?.id ? 'Cannot delete your own account' : 'Delete user'}
-                    >
-                      Delete
-                    </button>
+                    <div className="flex justify-end space-x-2">
+                      <button
+                        onClick={() => openEditModal(user)}
+                        className="text-indigo-600 hover:text-indigo-900"
+                        title="Edit User"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => openEditSubscriptionModal(user)}
+                        className="text-blue-600 hover:text-blue-900"
+                        title="Edit Subscription"
+                      >
+                        Subscription
+                      </button>
+                      <button
+                        onClick={() => handleViewUsage(user.id)}
+                        className="text-green-600 hover:text-green-900"
+                        title="View Usage"
+                      >
+                        Usage
+                      </button>
+                      {user.status === 'active' ? (
+                        <button
+                          onClick={() => handleUpdateUserStatus(user.id, 'suspended', 'Suspended by admin')}
+                          className="text-orange-600 hover:text-orange-900"
+                          title="Suspend User"
+                        >
+                          Suspend
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => handleUpdateUserStatus(user.id, 'active')}
+                          className="text-green-600 hover:text-green-900"
+                          title="Activate User"
+                        >
+                          Activate
+                        </button>
+                      )}
+                      <button
+                        onClick={() => handleDeleteUser(user.id)}
+                        disabled={user.id === currentUser?.id}
+                        className={`${
+                          user.id === currentUser?.id
+                            ? 'text-gray-400 cursor-not-allowed'
+                            : 'text-red-600 hover:text-red-900'
+                        }`}
+                        title={user.id === currentUser?.id ? 'Cannot delete your own account' : 'Delete user'}
+                      >
+                        Delete
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -431,7 +582,7 @@ const UserManagement = () => {
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
-                <div className="mb-6">
+                <div className="mb-4">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Role
                   </label>
@@ -440,9 +591,48 @@ const UserManagement = () => {
                     onChange={(e) => setFormData({ ...formData, role: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
-                    <option value="user">User</option>
                     <option value="admin">Admin</option>
+                    <option value="inbound">Inbound</option>
+                    <option value="outbound">Outbound</option>
                   </select>
+                </div>
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Subscription Plan
+                  </label>
+                  <select
+                    value={formData.subscription.plan}
+                    onChange={(e) => setFormData({ 
+                      ...formData, 
+                      subscription: { 
+                        ...formData.subscription, 
+                        plan: e.target.value 
+                      } 
+                    })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="basic">Basic</option>
+                    <option value="pro">Pro</option>
+                    <option value="enterprise">Enterprise</option>
+                  </select>
+                </div>
+                <div className="mb-6">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Call Minutes Allocated
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={formData.subscription.call_minutes_allocated}
+                    onChange={(e) => setFormData({ 
+                      ...formData, 
+                      subscription: { 
+                        ...formData.subscription, 
+                        call_minutes_allocated: parseInt(e.target.value) || 0 
+                      } 
+                    })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
                 </div>
                 <div className="flex justify-end space-x-3">
                   <button
@@ -516,8 +706,9 @@ const UserManagement = () => {
                     onChange={(e) => setFormData({ ...formData, role: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
-                    <option value="user">User</option>
                     <option value="admin">Admin</option>
+                    <option value="inbound">Inbound</option>
+                    <option value="outbound">Outbound</option>
                   </select>
                 </div>
                 <div className="flex justify-end space-x-3">
@@ -536,6 +727,154 @@ const UserManagement = () => {
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Subscription Modal */}
+      {showEditSubscriptionModal && editingUser && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+          <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <div className="mt-3">
+              <h3 className="text-lg font-medium text-gray-900 mb-4">Edit Subscription - {editingUser.name}</h3>
+              <form onSubmit={handleUpdateSubscription}>
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Plan
+                  </label>
+                  <select
+                    value={subscriptionFormData.plan}
+                    onChange={(e) => setSubscriptionFormData({ ...subscriptionFormData, plan: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="basic">Basic</option>
+                    <option value="pro">Pro</option>
+                    <option value="enterprise">Enterprise</option>
+                  </select>
+                </div>
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Call Minutes Allocated
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={subscriptionFormData.call_minutes_allocated}
+                    onChange={(e) => setSubscriptionFormData({ ...subscriptionFormData, call_minutes_allocated: parseInt(e.target.value) || 0 })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Start Date
+                  </label>
+                  <input
+                    type="date"
+                    value={subscriptionFormData.start_date}
+                    onChange={(e) => setSubscriptionFormData({ ...subscriptionFormData, start_date: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    End Date
+                  </label>
+                  <input
+                    type="date"
+                    value={subscriptionFormData.end_date}
+                    onChange={(e) => setSubscriptionFormData({ ...subscriptionFormData, end_date: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div className="mb-6">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Notes
+                  </label>
+                  <textarea
+                    value={subscriptionFormData.notes}
+                    onChange={(e) => setSubscriptionFormData({ ...subscriptionFormData, notes: e.target.value })}
+                    rows="3"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div className="flex justify-end space-x-3">
+                  <button
+                    type="button"
+                    onClick={closeModals}
+                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    Update Subscription
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* View Usage Modal */}
+      {showViewUsageModal && usageData && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+          <div className="relative top-10 mx-auto p-5 border w-4/5 max-w-4xl shadow-lg rounded-md bg-white">
+            <div className="mt-3">
+              <h3 className="text-lg font-medium text-gray-900 mb-4">Usage Statistics - {usageData.user.email}</h3>
+              
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                <div className="bg-blue-50 p-4 rounded-lg">
+                  <h4 className="text-sm font-medium text-blue-800">Subscription</h4>
+                  <p className="text-2xl font-bold text-blue-900">{usageData.subscription.plan}</p>
+                  <p className="text-sm text-blue-600">
+                    {usageData.subscription.call_minutes_used} / {usageData.subscription.call_minutes_allocated} minutes used
+                  </p>
+                  <div className="w-full bg-blue-200 rounded-full h-2 mt-2">
+                    <div 
+                      className="bg-blue-600 h-2 rounded-full" 
+                      style={{ width: `${usageData.usage_percentage}%` }}
+                    ></div>
+                  </div>
+                </div>
+                
+                <div className="bg-green-50 p-4 rounded-lg">
+                  <h4 className="text-sm font-medium text-green-800">Calls</h4>
+                  <p className="text-2xl font-bold text-green-900">{usageData.calls.total}</p>
+                  <p className="text-sm text-green-600">
+                    {Math.round(usageData.calls.total_duration_seconds / 60)} minutes total
+                  </p>
+                </div>
+                
+                <div className="bg-purple-50 p-4 rounded-lg">
+                  <h4 className="text-sm font-medium text-purple-800">Leads</h4>
+                  <p className="text-2xl font-bold text-purple-900">{usageData.leads.total}</p>
+                  <p className="text-sm text-purple-600">
+                    {usageData.leads.conversion_rate}% conversion rate
+                  </p>
+                </div>
+              </div>
+
+              {usageData.campaigns && (
+                <div className="bg-yellow-50 p-4 rounded-lg mb-6">
+                  <h4 className="text-sm font-medium text-yellow-800">Campaigns</h4>
+                  <p className="text-lg font-bold text-yellow-900">
+                    {usageData.campaigns.active} active / {usageData.campaigns.total} total
+                  </p>
+                </div>
+              )}
+
+              <div className="flex justify-end">
+                <button
+                  onClick={closeModals}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500"
+                >
+                  Close
+                </button>
+              </div>
             </div>
           </div>
         </div>

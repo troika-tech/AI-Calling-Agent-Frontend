@@ -1,22 +1,38 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { Eye, EyeOff, LogIn } from 'lucide-react';
+import { Eye, EyeOff, UserPlus } from 'lucide-react';
 
-const Login = () => {
+const Register = () => {
   const [email, setEmail] = useState('');
+  const [name, setName] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const { login } = useAuth();
+  const { register } = useAuth();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError('');
 
-    const result = await login(email, password);
+    // Validation
+    if (password.length < 8) {
+      setError('Password must be at least 8 characters long');
+      setLoading(false);
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setError('Passwords do not match');
+      setLoading(false);
+      return;
+    }
+
+    const result = await register(email, name, password);
     
     if (!result.success) {
       setError(result.error);
@@ -30,18 +46,35 @@ const Login = () => {
       <div className="max-w-md w-full space-y-8">
         <div className="text-center">
           <div className="mx-auto h-12 w-12 bg-primary-600 rounded-lg flex items-center justify-center">
-            <LogIn className="h-6 w-6 text-white" />
+            <UserPlus className="h-6 w-6 text-white" />
           </div>
           <h2 className="mt-6 text-3xl font-bold text-gray-900">
-            Millis Admin Dashboard
+            Create Account
           </h2>
           <p className="mt-2 text-sm text-gray-600">
-            Sign in to your admin account
+            Sign up for a new account
           </p>
         </div>
 
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           <div className="space-y-4">
+            <div>
+              <label htmlFor="name" className="block text-sm font-medium text-gray-700">
+                Full Name
+              </label>
+              <input
+                id="name"
+                name="name"
+                type="text"
+                autoComplete="name"
+                required
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="mt-1 input w-full"
+                placeholder="John Doe"
+              />
+            </div>
+
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700">
                 Email address
@@ -55,7 +88,7 @@ const Login = () => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="mt-1 input w-full"
-                placeholder="admin@example.com"
+                placeholder="john@example.com"
               />
             </div>
 
@@ -68,12 +101,13 @@ const Login = () => {
                   id="password"
                   name="password"
                   type={showPassword ? 'text' : 'password'}
-                  autoComplete="current-password"
+                  autoComplete="new-password"
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="input w-full pr-10"
-                  placeholder="Enter your password"
+                  placeholder="Enter your password (min. 8 characters)"
+                  minLength={8}
                 />
                 <button
                   type="button"
@@ -81,6 +115,36 @@ const Login = () => {
                   onClick={() => setShowPassword(!showPassword)}
                 >
                   {showPassword ? (
+                    <EyeOff className="h-4 w-4 text-gray-400" />
+                  ) : (
+                    <Eye className="h-4 w-4 text-gray-400" />
+                  )}
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
+                Confirm Password
+              </label>
+              <div className="mt-1 relative">
+                <input
+                  id="confirmPassword"
+                  name="confirmPassword"
+                  type={showConfirmPassword ? 'text' : 'password'}
+                  autoComplete="new-password"
+                  required
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="input w-full pr-10"
+                  placeholder="Confirm your password"
+                />
+                <button
+                  type="button"
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                >
+                  {showConfirmPassword ? (
                     <EyeOff className="h-4 w-4 text-gray-400" />
                   ) : (
                     <Eye className="h-4 w-4 text-gray-400" />
@@ -105,19 +169,19 @@ const Login = () => {
               {loading ? (
                 <div className="flex items-center">
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  Signing in...
+                  Creating account...
                 </div>
               ) : (
-                'Sign in'
+                'Create Account'
               )}
             </button>
           </div>
 
           <div className="text-center">
             <p className="text-sm text-gray-600">
-              Don't have an account?{' '}
-              <Link to="/register" className="font-medium text-primary-600 hover:text-primary-500">
-                Sign up
+              Already have an account?{' '}
+              <Link to="/" className="font-medium text-primary-600 hover:text-primary-500">
+                Sign in
               </Link>
             </p>
           </div>
@@ -127,4 +191,5 @@ const Login = () => {
   );
 };
 
-export default Login;
+export default Register;
+

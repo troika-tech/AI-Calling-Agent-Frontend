@@ -220,9 +220,9 @@ const UserSupport = () => {
                 onChange={handleInputChange}
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
               >
-                <option value="low">Low - General inquiry</option>
-                <option value="medium">Medium - Feature request or minor issue</option>
-                <option value="high">High - Urgent issue affecting calls</option>
+                <option key="low" value="low">Low - General inquiry</option>
+                <option key="medium" value="medium">Medium - Feature request or minor issue</option>
+                <option key="high" value="high">High - Urgent issue affecting calls</option>
               </select>
             </div>
 

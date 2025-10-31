@@ -1,11 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useLocation } from 'react-router-dom';
 import UserSidebar from './user/UserSidebar';
 import Header from './Header';
 import UserOverview from './user/UserOverview';
 import UserCalls from './user/UserCalls';
 import UserAgents from './user/UserAgents';
+import UserVoiceAgents from './user/UserVoiceAgents';
 import UserCampaigns from './user/UserCampaigns';
+import CampaignDetail from './user/CampaignDetail';
 import UserPhones from './user/UserPhones';
 import UserBilling from './user/UserBilling';
 import UserSupport from './user/UserSupport';
@@ -16,8 +18,45 @@ const UserDashboard = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { isDark } = useTheme();
 
-  const renderContent = () => {
+  const content = useMemo(() => {
     const path = location.pathname;
+    
+    // Handle both /inbound/* and /user/* routes
+    if (path.startsWith('/inbound/')) {
+      // Handle campaign detail routes with ID
+      if (path.startsWith('/inbound/campaigns/') && path !== '/inbound/campaigns') {
+        // Extract campaign ID from path
+        const campaignId = path.split('/inbound/campaigns/')[1];
+        if (campaignId) {
+          return <CampaignDetail campaignId={campaignId} />;
+        }
+      }
+      
+      switch (path) {
+        case '/inbound/dashboard':
+          // Redirect dashboard to overview for consistency
+          window.history.replaceState(null, '', '/inbound/overview');
+          return <UserOverview />;
+        case '/inbound/overview':
+          return <UserOverview />;
+        case '/inbound/calls':
+          return <UserCalls />;
+        case '/inbound/agents':
+        case '/inbound/voice-agents':
+        case '/inbound/phones':
+          // Hide these routes for inbound users - redirect to overview
+          window.history.replaceState(null, '', '/inbound/overview');
+          return <UserOverview />;
+        case '/inbound/campaigns':
+          return <UserCampaigns />;
+        case '/inbound/billing':
+          return <UserBilling />;
+        case '/inbound/support':
+          return <UserSupport />;
+        default:
+          return <UserOverview />;
+      }
+    }
     
     switch (path) {
       // Admin routes (redirect to user dashboard)
@@ -40,6 +79,8 @@ const UserDashboard = () => {
         return <UserCalls />;
       case '/user/agents':
         return <UserAgents />;
+      case '/user/voice-agents':
+        return <UserVoiceAgents />;
       case '/user/campaigns':
         return <UserCampaigns />;
       case '/user/phones':
@@ -53,7 +94,7 @@ const UserDashboard = () => {
       default:
         return <UserOverview />;
     }
-  };
+  }, [location.pathname]);
 
   return (
     <div 
@@ -66,12 +107,14 @@ const UserDashboard = () => {
     >
       <UserSidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       
-      <div className="lg:pl-72">
-        <Header onMenuClick={() => setSidebarOpen(true)} />
-        
-        <main className="py-8">
+      <Header onMenuClick={() => setSidebarOpen(true)} />
+      
+      <div className="lg:ml-72">
+        <main className="pt-6 pb-12">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            {renderContent()}
+            <div className="min-h-screen">
+              {content}
+            </div>
           </div>
         </main>
       </div>

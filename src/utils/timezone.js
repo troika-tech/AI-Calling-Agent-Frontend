@@ -12,7 +12,7 @@ export const convertToIST = (utcDateString) => {
   const hours = String(istDate.getHours()).padStart(2, '0');
   const minutes = String(istDate.getMinutes()).padStart(2, '0');
   
-  return `${year}-${month}-${day} ${hours}:${minutes} IST (+05:30)`;
+  return `${year}-${month}-${day} ${hours}:${minutes}`;
 };
 
 export const formatDuration = (seconds) => {
