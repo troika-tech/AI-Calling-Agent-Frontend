@@ -1,7 +1,139 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { api } from '../../services/api';
 import { convertToIST, formatDuration, formatCurrency, getRelativeTime } from '../../utils/timezone';
 import LoadingSpinner from '../LoadingSpinner';
+
+// Component for playing authenticated recordings
+const RecordingAudioPlayer = ({ recordingUrl, callId }) => {
+  const [blobUrl, setBlobUrl] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const audioRef = useRef(null);
+
+  useEffect(() => {
+    if (!recordingUrl) return;
+
+    let currentBlobUrl = null;
+    let isMounted = true;
+
+    const loadAudio = async () => {
+      setLoading(true);
+      setError(null);
+      
+      try {
+        const proxyUrl = api.getRecordingProxyUrl(recordingUrl);
+        
+        if (!proxyUrl) {
+          throw new Error('Invalid recording URL');
+        }
+
+        console.log('Loading recording from:', proxyUrl);
+        
+        const response = await fetch(proxyUrl, {
+          method: 'GET',
+          headers: {
+            'Accept': 'audio/mpeg, audio/mp3, audio/wav, audio/*',
+          },
+          credentials: 'include' // This sends HTTP-only cookies for authentication
+        });
+
+        console.log('Response status:', response.status, response.statusText);
+
+        if (!response.ok) {
+          // Try to get error message from response
+          let errorMessage = `Failed to load recording: ${response.status} ${response.statusText}`;
+          try {
+            const errorData = await response.json();
+            errorMessage = errorData.error || errorMessage;
+          } catch (e) {
+            // Response is not JSON, use default message
+          }
+          throw new Error(errorMessage);
+        }
+
+        const blob = await response.blob();
+        
+        if (!blob || blob.size === 0) {
+          throw new Error('Received empty audio file');
+        }
+
+        const url = window.URL.createObjectURL(blob);
+        currentBlobUrl = url;
+
+        if (isMounted) {
+          setBlobUrl(url);
+          setLoading(false);
+        } else {
+          // Component unmounted, clean up immediately
+          window.URL.revokeObjectURL(url);
+        }
+      } catch (err) {
+        console.error('Error loading recording:', err);
+        console.error('Recording URL:', recordingUrl);
+        if (isMounted) {
+          setError(err.message || 'Failed to load recording');
+          setLoading(false);
+        }
+      }
+    };
+
+    loadAudio();
+
+    // Cleanup blob URL on unmount or when recordingUrl changes
+    return () => {
+      isMounted = false;
+      if (currentBlobUrl) {
+        window.URL.revokeObjectURL(currentBlobUrl);
+      }
+      // Clean up previous blob URL if it exists
+      setBlobUrl(prev => {
+        if (prev) {
+          window.URL.revokeObjectURL(prev);
+        }
+        return null;
+      });
+    };
+  }, [recordingUrl]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center space-x-2">
+        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+        <span className="text-xs text-gray-500">Loading...</span>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="text-xs text-red-600" title={error}>
+        Failed to load
+      </div>
+    );
+  }
+
+  if (!blobUrl) {
+    return <span className="text-gray-400">—</span>;
+  }
+
+  return (
+    <audio 
+      ref={audioRef}
+      controls 
+      preload="none"
+      className="h-6 sm:h-8 w-32 sm:w-48"
+      style={{ maxWidth: '200px' }}
+      onError={(e) => {
+        console.error('Audio playback error:', e);
+      }}
+    >
+      <source src={blobUrl} type="audio/mpeg" />
+      <source src={blobUrl} type="audio/wav" />
+      <source src={blobUrl} type="audio/mp3" />
+      Your browser does not support the audio element.
+    </audio>
+  );
+};
 
 const UserCalls = () => {
   const [calls, setCalls] = useState([]);
@@ -14,6 +146,8 @@ const UserCalls = () => {
   const [hasMore, setHasMore] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [showLive, setShowLive] = useState(true);
+  const [downloadingRecordings, setDownloadingRecordings] = useState(new Set());
+  const [recordingBlobUrls, setRecordingBlobUrls] = useState(new Map());
 
   // Filters
   const [filters, setFilters] = useState({
@@ -184,6 +318,121 @@ const UserCalls = () => {
     }
   };
 
+  // Load recording as blob URL for audio element
+  const loadRecordingBlobUrl = async (recordingUrl) => {
+    if (!recordingUrl) return null;
+    
+    // Check if we already have this blob URL
+    if (recordingBlobUrls.has(recordingUrl)) {
+      return recordingBlobUrls.get(recordingUrl);
+    }
+    
+    try {
+      const proxyUrl = api.getRecordingProxyUrl(recordingUrl);
+      
+      const response = await fetch(proxyUrl, {
+        method: 'GET',
+        headers: {
+          'Accept': 'audio/mpeg, audio/mp3, audio/wav, audio/*',
+          'Authorization': `Bearer ${api.getToken()}`
+        },
+        credentials: 'include'
+      });
+      
+      if (!response.ok) {
+        console.error('Failed to fetch recording:', response.status);
+        return null;
+      }
+      
+      const blob = await response.blob();
+      const blobUrl = window.URL.createObjectURL(blob);
+      
+      // Store the blob URL
+      setRecordingBlobUrls(prev => new Map(prev).set(recordingUrl, blobUrl));
+      
+      return blobUrl;
+    } catch (error) {
+      console.error('Error loading recording blob:', error);
+      return null;
+    }
+  };
+
+  const handleDownloadRecording = async (recordingUrl, phoneFrom) => {
+    // Create a unique key for this download
+    const downloadKey = `${phoneFrom}-${recordingUrl}`;
+    
+    // Check if already downloading
+    if (downloadingRecordings.has(downloadKey)) {
+      return;
+    }
+    
+    try {
+      // Add to downloading set
+      setDownloadingRecordings(prev => new Set(prev).add(downloadKey));
+      
+      // Use proxy URL to fetch with authentication
+      const proxyUrl = api.getRecordingProxyUrl(recordingUrl);
+      
+      if (!proxyUrl) {
+        throw new Error('Invalid recording URL');
+      }
+      
+      // Fetch the recording as a blob through proxy
+      const response = await fetch(proxyUrl, {
+        method: 'GET',
+        headers: {
+          'Accept': 'audio/mpeg, audio/mp3, audio/wav, audio/*',
+        },
+        credentials: 'include' // This sends HTTP-only cookies for authentication
+      });
+      
+      if (!response.ok) {
+        let errorMessage = `Failed to download recording: ${response.status} ${response.statusText}`;
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorMessage;
+        } catch (e) {
+          // Response is not JSON, use default message
+        }
+        throw new Error(errorMessage);
+      }
+      
+      // Get the blob
+      const blob = await response.blob();
+      
+      if (!blob || blob.size === 0) {
+        throw new Error('Received empty audio file');
+      }
+      
+      // Create object URL
+      const url = window.URL.createObjectURL(blob);
+      
+      // Create download link
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `recording_${phoneFrom.replace(/[^0-9]/g, '')}_${new Date().getTime()}.mp3`;
+      document.body.appendChild(a);
+      
+      // Trigger download
+      a.click();
+      
+      // Cleanup
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      
+    } catch (error) {
+      console.error('Error downloading recording:', error);
+      setError(`Failed to download recording: ${error.message}`);
+    } finally {
+      // Remove from downloading set
+      setDownloadingRecordings(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(downloadKey);
+        return newSet;
+      });
+    }
+  };
+
   const getStatusColor = (status) => {
     switch (status) {
       case 'answered': return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
@@ -325,9 +574,26 @@ const UserCalls = () => {
                       {call.status}
                     </span>
                   </td>
-                  <td className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 text-xs sm:text-sm text-blue-600 whitespace-nowrap">
+                  <td className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 whitespace-nowrap">
                     {showLive && call.recording_url ? (
-                      <a href={call.recording_url} target="_blank" rel="noreferrer" className="hover:underline">Play</a>
+                      <div className="flex items-center space-x-2">
+                        <RecordingAudioPlayer 
+                          recordingUrl={call.recording_url}
+                          callId={call.id || call._id}
+                        />
+                        <button
+                          onClick={() => handleDownloadRecording(call.recording_url, call.phone_from)}
+                          disabled={downloadingRecordings.has(`${call.phone_from}-${call.recording_url}`)}
+                          className={`text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity flex-shrink-0 ${
+                            downloadingRecordings.has(`${call.phone_from}-${call.recording_url}`) ? 'animate-pulse' : ''
+                          }`}
+                          title={downloadingRecordings.has(`${call.phone_from}-${call.recording_url}`) ? 'Downloading...' : 'Download recording'}
+                        >
+                          <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                          </svg>
+                        </button>
+                      </div>
                     ) : (
                       <span className="text-gray-400">—</span>
                     )}
@@ -358,11 +624,6 @@ const UserCalls = () => {
                   </div>
                   <p className="text-xs text-gray-600 font-medium">{convertToIST(call.created_at)}</p>
                 </div>
-                {showLive && call.recording_url && (
-                  <a href={call.recording_url} target="_blank" rel="noreferrer" className="text-xs text-blue-600 hover:underline ml-2">
-                    Play
-                  </a>
-                )}
               </div>
               
               <div className="space-y-1.5 text-xs">
@@ -396,6 +657,26 @@ const UserCalls = () => {
                     {formatDuration(call.duration_seconds)}
                   </span>
                 </div>
+                {showLive && call.recording_url && (
+                  <div className="flex items-center gap-2 mt-2">
+                    <div className="flex items-center gap-2 flex-1">
+                      <RecordingAudioPlayer 
+                        recordingUrl={call.recording_url}
+                        callId={call.id || call._id}
+                      />
+                      <button
+                      onClick={() => handleDownloadRecording(call.recording_url, call.phone_from)}
+                      disabled={downloadingRecordings.has(`${call.phone_from}-${call.recording_url}`)}
+                      className="text-blue-600 hover:text-blue-800 disabled:opacity-50 flex-shrink-0"
+                      title="Download recording"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                      </svg>
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           ))}

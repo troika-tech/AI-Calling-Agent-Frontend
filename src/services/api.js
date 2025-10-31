@@ -718,6 +718,14 @@ class ApiService {
     return this.request(`/inbound/calls/${callId}`);
   }
 
+  getRecordingProxyUrl(recordingUrl) {
+    // Return proxy URL that will authenticate with backend
+    // Note: Audio elements can't send Authorization headers, so auth relies on cookies/credentials
+    if (!recordingUrl) return null;
+    const encodedUrl = encodeURIComponent(recordingUrl);
+    return `${this.baseURL}/inbound/calls/recording/proxy?url=${encodedUrl}`;
+  }
+
   async exportInboundCalls(filters = {}) {
     const response = await fetch(`${this.baseURL}/inbound/calls/export`, {
       method: 'POST',
